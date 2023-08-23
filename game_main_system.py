@@ -313,9 +313,12 @@ def draw_health(surf, hp, x, y, text, size, color):
     high = 20
     if hp <= 0:
         hp = 0
-    if hp >= 500:
+    elif 500 <= hp <= 1000:
         hp = hp / 2
         high = 30
+    elif hp > 1000:
+        hp = hp / 5
+        high = 40
     BAR_LENGTH = hp
     BAR_HEIGHT = high
     fill = hp
@@ -738,8 +741,11 @@ def play_bill(money):
 # 商店系统
 def store():
     click = False
+    # 播放音乐
+    store_music = pg.mixer.Sound('sounds/store_music.mp3')
+    pg.mixer.Sound.play(store_music)
     while True:
-        global n_1, n_2, n_3, n_4
+        global n_1, n_2, n_3, n_4, up_health, up_live
         screen.blit(game_img.store_img, (0, -200))  # 显示图片的方法
         draw_text(screen, '商店（重启游戏将重置）', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
         mx, my = pg.mouse.get_pos()
@@ -815,6 +821,7 @@ def store():
                         money = 1000
                         n_3 += 1
                         player.lives += 1
+                        up_live += 1
                         play_bill(money)
                     else:
                         tk.messagebox.showinfo('提示', '分数不足')
@@ -829,6 +836,7 @@ def store():
                         money = 1000
                         n_4 += 1
                         player.health += 10
+                        up_health += 10
                         play_bill(money)
                     else:
                         tk.messagebox.showinfo('提示', '分数不足')
@@ -974,7 +982,7 @@ enemies_to_spawn = 10
 level = 1
 
 # 定义boss参数
-boss_health = 100
+boss_health = 300
 boss_attack_delay = 60
 boss_bullet_speed = 10
 boss_laser_delay = 240
@@ -984,6 +992,7 @@ laser_speed = 3
 bullet_width = 20
 bullet_height = 35
 bullet_speed = 10
+spread_bullet = False
 
 # 定义一些list存东西
 player_bullets = []
@@ -1045,6 +1054,12 @@ def create_player_bullet():
     bullet_y = playerCh2.rect.top - bullet_height
     bullet_sprite = pg.Rect(bullet_x, bullet_y, bullet_width, bullet_height)
     player_bullets.append((bullet_sprite, "front"))
+    global spread_bullet
+    if spread_bullet == True:
+        bullet_sprite_left = pg.Rect(bullet_x - 10, bullet_y, bullet_width, bullet_height)
+        bullet_sprite_right = pg.Rect(bullet_x + 10, bullet_y, bullet_width, bullet_height)
+        player_bullets.append((bullet_sprite_left, "left"))
+        player_bullets.append((bullet_sprite_right, "right"))
 
 
 # 更新玩家子弹
@@ -1195,7 +1210,7 @@ def update_enemy_bullets():
 def create_boss():
     global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed
     boss_sprite = pg.Rect(200, 100, 300, 120)
-    boss_health = 100
+    boss_health = 300
     boss_attack_delay = 60
     boss_bullet_speed = 10
 
@@ -1373,22 +1388,25 @@ def create_level():
 
 
 def create_level_2():
-    global boss_image, level, boss_bullet_speed, enemy_spawn_delay, enemies_to_spawn, enemy_image
+    global boss_image, level, boss_health, boss_bullet_speed, enemy_spawn_delay, enemies_to_spawn, enemy_image
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_level_2-removebg-preview.png")
     boss_image = pg.transform.scale(boss_image, (230, 230))
     boss_bullet_speed += 1
-    enemy_spawn_delay = 0
-    enemies_to_spawn += 5
+    enemies_to_spawn += 10
+    boss_health += 500
     enemy_image = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
     level += 1
 
 
 def create_level_3():
-    global boss_image, level
+    global boss_image, level, boss_health, enemies_to_spawn, boss_bullet_speed
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_3.png")
+    enemies_to_spawn += 5
     boss_image = pg.transform.scale(boss_image, (230, 230))
+    boss_health += 1000
+    boss_bullet_speed += 1
     level += 1
 
 
@@ -1410,6 +1428,7 @@ def update_game_ch2():
         create_level_2()
     if (level == 3) and (enemies_spawned > 15):
         create_level_3()
+
     global game_over, boss_image, ch2_score
     if boss_health <= 0:
         ch2_score += 10000
@@ -1446,13 +1465,18 @@ def draw_game():
         game_window.blit(player_bullet_image, bullet[0])
     font = pg.font.Font(None, 36)
     # boss_health_text = font.render("Boss Health: " + str(boss_health), True, config.WHITE)
-    draw_health(game_window, boss_health, 150, 40, '', 24, config.BLUE)
+    # boss血条
+    if boss_health <= 1000:
+        draw_health(game_window, boss_health, 150, 40, '', 24, config.BLUE)
+    else:
+        draw_health(game_window, boss_health, 50, 40, '', 24, config.BLUE)
     # game_window.blit(boss_health_text, (WINDOWWIDTH / 2 - 70, 50))
     game_window.blit(boss_image, boss_sprite)
     for enemy in enemies:
         game_window.blit(enemy_image, enemy)
 
 
+# 背景参数
 background_image = pg.image.load(
     "chapter_2_things/game_sprite/chapter2_bg.jpg")
 background_speed = 1.5
@@ -1464,6 +1488,10 @@ def clear_all():
     boss_lasers.clear()
     enemy_bullets.clear()
     player_bullets.clear()
+
+
+up_health = 0
+up_live = 0
 
 
 def chapter2():
@@ -1497,8 +1525,9 @@ def chapter2():
             background_surface.blit(background_image, (x, y))
     background_position = [0, -WINDOWHEIGHT]
     # 玩家初始化
-    playerCh2.lives = 3
-    playerCh2.health = 100
+    playerCh2.lives = 3 + up_live
+    playerCh2.health = 100 + up_health
+    max_health = 100 + up_health
     playerCh2.rect.centerx = config.WIDTH / 2
     playerCh2.rect.bottom = config.HEIGHT - 10
     playerCh2.image = player_image
@@ -1621,16 +1650,16 @@ def chapter2():
 
                 # 射击
                 if ggf.gesture(finger_angle) == 'rock' and label == 'Left' and (
-                        playerCh2.image is not player_hero or player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'rock' and label == 'Right' and (
-                        playerCh2.image is not player_hero or player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'good' and label == 'Left' and (
-                        playerCh2.image is not player_hero or player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'good' and label == 'Right' and (
-                        playerCh2.image is not player_hero or player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
                     playerCh2.shoot()
 
                 # 变身
@@ -1646,12 +1675,12 @@ def chapter2():
                 # hero技能
                 if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
                         finger_angle) == 'scissor' and label == 'Left':
-                    if playerCh2.health <= 200:
+                    if playerCh2.health <= max_health + 50:
                         playerCh2.health += 0.5
                         playerCh2.image = player_hero_eff
                 if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
                         finger_angle) == 'scissor' and label == 'Right':
-                    if playerCh2.health <= 200:
+                    if playerCh2.health <= max_health + 50:
                         playerCh2.health += 0.5
                         playerCh2.image = player_hero_eff
 
@@ -1671,13 +1700,18 @@ def chapter2():
                         running = False
                     else:
                         pass
-
+            # 分散子弹
+            if playerCh2.health >= max_health:
+                global spread_bullet
+                spread_bullet = True
+            else:
+                spread_bullet = False
             background_position[1] += background_speed
             if background_position[1] > 0:
                 background_position[1] -= 600
             game_window.blit(background_surface, background_position)
             draw_text(game_window, "score:" + str(ch2_score), 24, config.WIDTH / 2 + 100, 10)
-            level_text = font.render("Level: " + str(level), True, config.WHITE)
+            level_text = font.render("Level: " + str(level), True, config.RED, config.BLACK)
             game_window.blit(level_text, (WINDOWWIDTH / 2 - 50, 10))
             draw_health(game_window, health, 10, 10, str(health), 18, config.RED)
             for bullet in enemy_bullets:
@@ -1695,7 +1729,11 @@ def chapter2():
                 create_enemy()
                 if level == 2:
                     enemy_spawn_delay = 50
-                else:
+                elif level == 3:
+                    enemy_spawn_delay = 40
+                elif level == 4:
+                    enemy_spawn_delay = 30
+                elif level == 1:
                     enemy_spawn_delay = 60
                 enemies_spawned += 1
 
