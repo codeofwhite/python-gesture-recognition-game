@@ -17,7 +17,13 @@ screen = pg.display.set_mode((WIDTH, HEIGHT))
 # 按钮们
 btn1_img = pg.image.load(
     'imgs/button_type_1.png')
-btn1_img = pg.transform.scale(btn1_img, (265, 60))
+btn1_img = pg.transform.scale(btn1_img, (200, 50))
+btn2_img = pg.image.load(
+    'imgs/button_type_2-removebg-preview.png')
+btn2_img = pg.transform.scale(btn2_img, (250, 100))
+btn3_img = pg.image.load(
+    'imgs/button_type_4-removebg-preview.png')
+btn3_img = pg.transform.scale(btn3_img, (350, 120))
 
 # 载入图片
 background_img = pg.image.load(
@@ -30,6 +36,7 @@ store_img = pg.transform.scale(store_img, (800, 800))
 help_bg = pg.image.load(
     "imgs/help_bg.jpg"
 )
+aboutMe_bg = pg.image.load('imgs/aboutMe_bg.jpg')
 
 player_img = pg.image.load(
     'imgs/img/player.png').convert()

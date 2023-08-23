@@ -386,27 +386,32 @@ def draw_init():
         button_3_text = font.render("Store", True, (135, 206, 250))
         button_4_text = font.render("Login", True, (135, 206, 250))
         button_5_text = font.render("PVE MODE", True, (135, 206, 250))
+        button_6_text = font_zh.render("关于制作者", True, (135, 206, 250))
 
         button_1_image = game_img.btn1_img
         button_1 = pg.Rect(50, 100, 200, 50)
         screen.blit(button_1_image, button_1)
-        screen.blit(button_1_text, (button_1.x + 10, button_1.y + 20))
+        screen.blit(button_1_text, (button_1.x + 20, button_1.y + 15))
 
         button_2 = pg.Rect(50, 300, 200, 50)
         screen.blit(button_1_image, button_2)
-        screen.blit(button_2_text, (button_2.x + 10, button_2.y + 20))
+        screen.blit(button_2_text, (button_2.x + 20, button_2.y + 15))
 
         button_3 = pg.Rect(50, 400, 200, 50)
         screen.blit(button_1_image, button_3)
-        screen.blit(button_3_text, (button_3.x + 10, button_3.y + 20))
+        screen.blit(button_3_text, (button_3.x + 20, button_3.y + 15))
 
         button_4 = pg.Rect(50, 500, 200, 50)
         screen.blit(button_1_image, button_4)
-        screen.blit(button_4_text, (button_4.x + 10, button_4.y + 20))
+        screen.blit(button_4_text, (button_4.x + 20, button_4.y + 15))
 
-        button_5 = pg.Rect(50, 200, 200, 50)
-        screen.blit(button_1_image, button_5)
-        screen.blit(button_5_text, (button_5.x + 10, button_5.y + 20))
+        button_5 = pg.Rect(25, 175, 250, 100)
+        screen.blit(game_img.btn2_img, button_5)
+        screen.blit(button_5_text, (button_5.x + 75, button_5.y + 42))
+
+        button_6 = pg.Rect(500, 500, 200, 50)
+        screen.blit(button_1_image, button_6)
+        screen.blit(button_6_text, (button_6.x + 20, button_6.y + 15))
 
         if button_1.collidepoint((mx, my)):
             if click:
@@ -425,6 +430,9 @@ def draw_init():
         if button_5.collidepoint((mx, my)):
             if click:
                 chapter2()
+        if button_6.collidepoint((mx, my)):
+            if click:
+                aboutME()
         click = False
 
         # 取得输入
@@ -454,8 +462,6 @@ bg2 = plane_sprite.BackGroud(True,
 back_group = pg.sprite.Group(bg1, bg2)
 # 爆率
 odds = 0
-# 最高分
-highest_score = 0
 
 # 开启摄像头和显示的参数
 cap: VideoCapture = cv2.VideoCapture(0)  # 开启摄像头
@@ -665,11 +671,10 @@ def game_main():
                     cursor.execute(sql_take, (tk_login.user_name))
                     row = cursor.fetchone()
                     table_highest_score = row[0]
-                    global highest_score
                     if table_highest_score < score:
-                        highest_score = score
+                        table_highest_score = score
                     sql_record = "UPDATE user_base_info SET highest_record = %s WHERE user_name = %s"
-                    cursor.execute(sql_record, (highest_score, tk_login.user_name))
+                    cursor.execute(sql_record, (table_highest_score, tk_login.user_name))
                     sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
                     cursor.execute(sql_in, (score, tk_login.user_name))
                     sql_in_plays = "UPDATE user_base_info SET nums_of_plays = nums_of_plays + %s WHERE user_name = %s"
@@ -729,8 +734,16 @@ def help_():
     while True:
         screen.blit(game_img.help_bg, (0, -200))  # 显示图片的方法
         draw_text(screen, '新手教程', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
-        draw_text(screen, '使用手掌移动飞船\n左手握拳发射激光\n右手握拳发射子弹', 26, config.WIDTH / 2,
+        draw_text(screen, '自由模式：手掌移动飞船\n左手握拳发射激光\n右手握拳发射子弹', 26, config.WIDTH / 2,
                   config.HEIGHT / 4 + 100)
+        draw_text(screen, '\n剪刀是变小，one是恢复原本的大小', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 150)
+        draw_text(screen, '\nPVE模式：使用手掌移动飞船\n左右手握拳发射子弹', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 200)
+        draw_text(screen, '\none是切换模式，剪刀是在hero模式下恢复血量', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 250)
+        draw_text(screen, '\n您可以在商店/改装厂进行升级', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 300)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return draw_init()
@@ -772,29 +785,26 @@ def store():
         screen.blit(game_img.store_img, (0, -200))  # 显示图片的方法
         draw_text(screen, '商店（重启游戏将重置）', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
         mx, my = pg.mouse.get_pos()
-        button_1_text = font_zh.render("增加掉落机率(max10)", True, (135, 206, 250))
-        button_2_text = font_zh.render("增加飞船移动速度(max10)", True, (135, 206, 250))
-        button_3_text = font_zh.render("增加生命条数(max3)", True, (135, 206, 250))
-        button_4_text = font_zh.render("增加生命值上限(max10)", True, (135, 206, 250))
+        button_1_text = font_zh.render("增加掉落机率(max10)", True, (0, 0, 0))
+        button_2_text = font_zh.render("增加移动速度(max10)", True, (0, 0, 0))
+        button_3_text = font_zh.render("增加生命条数(max3)", True, (0, 0, 0))
+        button_4_text = font_zh.render("增加生命值上限(max10)", True, (0, 0, 0))
 
-        button_1_image = game_img.btn1_img
-        button_1 = pg.Rect(50, 120, 200, 50)
-        screen.blit(button_1_image, button_1)
-        screen.blit(button_1_text, (button_1.x + 10, button_1.y + 20))
+        button_1 = pg.Rect(30, 100, 350, 120)
+        screen.blit(game_img.btn3_img, button_1)
+        screen.blit(button_1_text, (button_1.x + 72, button_1.y + 45))
 
-        button_2 = pg.Rect(50, 220, 200, 50)
-        screen.blit(button_1_image, button_2)
-        screen.blit(button_2_text, (button_2.x + 10, button_2.y + 20))
+        button_2 = pg.Rect(30, 200, 350, 120)
+        screen.blit(game_img.btn3_img, button_2)
+        screen.blit(button_2_text, (button_2.x + 72, button_2.y + 45))
 
-        button_3 = pg.Rect(50, 320, 200, 50)
-        screen.blit(button_1_image, button_3)
-        screen.blit(button_3_text, (button_3.x + 10, button_3.y + 20))
+        button_3 = pg.Rect(30, 300, 350, 120)
+        screen.blit(game_img.btn3_img, button_3)
+        screen.blit(button_3_text, (button_3.x + 72, button_3.y + 45))
 
-        button_4 = pg.Rect(50, 420, 200, 50)
-        screen.blit(button_1_image, button_4)
-        screen.blit(button_4_text, (button_4.x + 10, button_4.y + 20))
-
-        table_score = 0
+        button_4 = pg.Rect(30, 400, 350, 120)
+        screen.blit(game_img.btn3_img, button_4)
+        screen.blit(button_4_text, (button_4.x + 68, button_4.y + 45))
 
         # 绘制玩家分数
         if tk_login.is_logged_in:
@@ -899,6 +909,32 @@ def profile():
     main.set_init_window()
 
 
+# 关于我
+def aboutME():
+    while True:
+        screen.blit(game_img.aboutMe_bg, (0, -200))  # 显示图片的方法
+        draw_text(screen, '关于制作者', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
+        draw_text(screen, '你好呀！勇敢的冒险者，我是这款游戏的开发者。', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 100)
+        draw_text(screen, '\n我来自重庆大学，是数据科学与大数据22级的学生', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 150)
+        draw_text(screen, '\n如何联系我', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 200)
+        draw_text(screen, '\nQQ：1363180320', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 250)
+        draw_text(screen, '\nEmail:99gelanjingling@gmail.com', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 300)
+        draw_text(screen, '\nGITHUB:https://github.com/codeofwhite', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 350)
+        draw_text(screen, '\n在此祝您游玩愉快！', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 400)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                return draw_init()
+        pg.display.update()
+        clock.tick(config.FPS)
+
+
 # 玩家主页类
 class User_Gui():
     def __init__(self):
@@ -925,14 +961,15 @@ class User_Gui():
                                       y=50)
         # 用户获得的总分
         cur = connect_.cursor()
-        sql = "SELECT score,highest_record,nums_of_plays FROM user_base_info WHERE user_name = %s"
+        sql = "SELECT score,highest_record,nums_of_plays,nums_of_wins FROM user_base_info WHERE user_name = %s"
         cur.execute(sql, (tk_login.user_name))
         row = cur.fetchone()
         score = row[0]
         ht_score = row[1]
         play_game_times = row[2]
-        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的最高得分为：" + str(
-            ht_score) + '\n您的自由模式游玩场数为：' + str(play_game_times),
+        play_game_wins = row[3]
+        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的自由模式最高得分为：" + str(
+            ht_score) + '\n您的自由模式游玩场数为：' + str(play_game_times) + '\n冒险模式总胜场:' + str(play_game_wins),
                  font=('宋体', 20), fg="blue",
                  bg='Light Sea Green', relief=SUNKEN).place(x=200, y=80)
 
@@ -991,13 +1028,29 @@ player_bullet_image = pg.image.load(
     "chapter_2_things/game_sprite/player_bullet.png")
 player_died = pg.image.load(
     "imgs/player_died-removebg-preview.png")
+# 不加这个坟就迁远
+player_died.set_colorkey(config.BLACK)
+
 player_hero = pg.image.load("chapter_2_things/game_sprite/player_king_mode.png")
+player_hero.set_colorkey(config.BLACK)
+
 player_hero_eff = pg.image.load("chapter_2_things/game_sprite/player_king_mode_eff.png")
+player_hero_eff.set_colorkey(config.BLACK)
+
 enemy_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
+enemy_image_2.set_colorkey(config.BLACK)
+
 enemy_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_3.png')
+enemy_image_3.set_colorkey(config.BLACK)
+
 enemy_bullet_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_2.png')
+enemy_bullet_image_2.set_colorkey(config.BLACK)
+
 enemy_bullet_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_3.png')
+enemy_bullet_image_3.set_colorkey(config.BLACK)
+
 player_hero_min = pg.image.load('chapter_2_things/game_sprite/player_king_mode_min.png')
+player_hero_min.set_colorkey(config.BLACK)
 
 # 定义敌人属性
 enemy_width = 70
@@ -1169,7 +1222,15 @@ def update_enemies():
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                if playerCh2.lives == 0:
+                if playerCh2.lives <= 0:
+                    # 不能放在主运行函数的game_over中，会有bug
+                    if tk_login.is_logged_in and not game_over:
+                        # print(ch2_score)
+                        cursor = connect_.cursor()
+                        cursor.execute('use user_info')
+                        sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                        cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                        connect_.commit()
                     game_over = True
 
 
@@ -1207,8 +1268,8 @@ def check_collisions():
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                if playerCh2.lives == 0:
-                    if tk_login.is_logged_in:
+                if playerCh2.lives <= 0:
+                    if tk_login.is_logged_in and not game_over:
                         # print(ch2_score)
                         cursor = connect_.cursor()
                         cursor.execute('use user_info')
@@ -1264,8 +1325,8 @@ def check_boss_collisions():
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                if playerCh2.lives == 0:
-                    if tk_login.is_logged_in:
+                if playerCh2.lives <= 0:
+                    if tk_login.is_logged_in and not game_over:
                         # print(ch2_score)
                         cursor = connect_.cursor()
                         cursor.execute('use user_info')
@@ -1335,17 +1396,11 @@ def update_boss():
             else:
                 boss_sprite.move_ip(0, 10)
             playerCh2.health -= 5
-            if playerCh2.health == 0:
+            if playerCh2.health <= 0:
                 playerCh2.health = 100
                 playerCh2.lives -= 1
-            else:
-                pass
-                # Make the player briefly invisible if they have just lost a life
-                # playerCh2.invisible = True
-                # playerCh2.player_flash_delay = playerCh2.player_invisible_delay_time
-                # player_sprite.bottom = -100
-            if playerCh2.lives == 0:
-                if tk_login.is_logged_in:
+            if playerCh2.lives <= 0:
+                if tk_login.is_logged_in and not game_over:
                     # print(ch2_score)
                     cursor = connect_.cursor()
                     cursor.execute('use user_info')
@@ -1360,14 +1415,12 @@ def update_boss():
             if laser.colliderect(playerCh2.rect):
                 boss_laser_delay = 240
                 playerCh2.health -= 10
-                if playerCh2.health == 0:
+                if playerCh2.health <= 0:
                     playerCh2.health = 100
-                    if playerCh2.lives != 0:
-                        playerCh2.lives -= 1
-                    else:
-                        game_over = True
-                if playerCh2.lives == 0:
-                    if tk_login.is_logged_in:
+                    playerCh2.lives -= 1
+                if playerCh2.lives <= 0:
+                    # 不能这里写，会多跑21次,加判断
+                    if tk_login.is_logged_in and not game_over:
                         # print(ch2_score)
                         cursor = connect_.cursor()
                         cursor.execute('use user_info')
@@ -1454,11 +1507,15 @@ def update_game_ch2():
             cursor.execute('use user_info')
             sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
             cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+            sql_in_wins = "UPDATE user_base_info SET nums_of_wins = nums_of_wins + %s WHERE user_name = %s"
+            cursor.execute(sql_in_wins, (1, tk_login.user_name))
             connect_.commit()
         boss_image = pg.image.load(
             "chapter_2_things/game_sprite/boss_died-removebg-preview.png")
         boss_image = pg.transform.scale(boss_image, (250, 250))
+        boss_image.set_colorkey(config.BLACK)
         game_window.blit(boss_image, boss_sprite)
+
         draw_text(screen, '你成功了', 26, config.WIDTH / 2, 50)
         draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
         pg.mixer.Sound.play(game_sound.winwin_sound)
@@ -1792,7 +1849,6 @@ def chapter2():
 
 # 运行
 draw_init()
-# chapter2()
 
 # 退出
 pg.quit()
