@@ -791,7 +791,7 @@ def store():
                     else:
                         tk.messagebox.showinfo('提示', '分数不足')
                 else:
-                    tk.messagebox.showinfo("提示","已满级")
+                    tk.messagebox.showinfo("提示", "已满级")
             elif click:
                 tk.messagebox.showinfo('请登录', "登录以获取分数")
         if button_2.collidepoint((mx, my)):
@@ -955,6 +955,8 @@ player_bullet_image = pg.image.load(
     "chapter_2_things/game_sprite/player_bullet.png")
 player_died = pg.image.load(
     "imgs/player_died-removebg-preview.png")
+player_hero = pg.image.load("chapter_2_things/game_sprite/player_king_mode.png")
+player_hero_eff = pg.image.load("chapter_2_things/game_sprite/player_king_mode_eff.png")
 
 # 定义敌人属性
 enemy_width = 70
@@ -1371,14 +1373,23 @@ def create_level():
 
 
 def create_level_2():
-    global boss_image
+    global boss_image, level, boss_bullet_speed, enemy_spawn_delay, enemies_to_spawn, enemy_image
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_level_2-removebg-preview.png")
     boss_image = pg.transform.scale(boss_image, (230, 230))
+    boss_bullet_speed += 1
+    enemy_spawn_delay = 0
+    enemies_to_spawn += 5
+    enemy_image = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
+    level += 1
 
 
 def create_level_3():
-    pass
+    global boss_image, level
+    boss_image = pg.image.load(
+        "chapter_2_things/game_sprite/boss_3.png")
+    boss_image = pg.transform.scale(boss_image, (230, 230))
+    level += 1
 
 
 # 总更新游戏
@@ -1397,8 +1408,8 @@ def update_game_ch2():
         create_level()
     if (level == 2) and (enemies_spawned > 10):
         create_level_2()
-    if (level == 3) and (enemies_spawned > 40):
-        pass
+    if (level == 3) and (enemies_spawned > 15):
+        create_level_3()
     global game_over, boss_image, ch2_score
     if boss_health <= 0:
         ch2_score += 10000
@@ -1414,7 +1425,7 @@ def update_game_ch2():
         game_window.blit(boss_image, boss_sprite)
         draw_text(screen, '你成功了', 26, config.WIDTH / 2, 50)
         draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
-        pg.mixer.Sound.play(game_sound.die_music)
+        pg.mixer.Sound.play(game_sound.winwin_sound)
         pg.display.update()
         waiting = True  # 设置一个等待标志
         while waiting:  # 进入一个等待循环
@@ -1444,7 +1455,7 @@ def draw_game():
 
 background_image = pg.image.load(
     "chapter_2_things/game_sprite/chapter2_bg.jpg")
-background_speed = 1
+background_speed = 1.5
 
 
 # 清除所有精灵
@@ -1506,12 +1517,19 @@ def chapter2():
         w, h = 600, 400  # 图像的尺寸
         game_lose = False
         while cap.isOpened() and running:
-            if level == 2 and (enemies_spawned > 10):
+            if level == 3 and (enemies_spawned > 10):
                 background_image = pg.image.load(
                     "chapter_2_things/game_sprite/chapter_bg2.jpg")
                 for x in range(0, 800, background_image.get_width()):
                     for y in range(0, 1200, background_image.get_height()):
                         background_surface.blit(background_image, (x, y))
+            if level == 4 and (enemies_spawned > 15):
+                background_image = pg.image.load(
+                    "chapter_2_things/game_sprite/chapter_bg_3.jpg")
+                for x in range(0, 800, background_image.get_width()):
+                    for y in range(0, 1200, background_image.get_height()):
+                        background_surface.blit(background_image, (x, y))
+
             if game_over and not game_lose:
                 death = Death(playerCh2.rect.center)
                 ch2_all_sprites.add(death)
@@ -1602,14 +1620,40 @@ def chapter2():
                     playerCh2.rect.y -= playerCh2.speed
 
                 # 射击
-                if ggf.gesture(finger_angle) == 'rock' and label == 'Left':
+                if ggf.gesture(finger_angle) == 'rock' and label == 'Left' and (
+                        playerCh2.image is not player_hero or player_hero_eff):
                     playerCh2.shoot()
-                if ggf.gesture(finger_angle) == 'rock' and label == 'Right':
+                if ggf.gesture(finger_angle) == 'rock' and label == 'Right' and (
+                        playerCh2.image is not player_hero or player_hero_eff):
                     playerCh2.shoot()
-                if ggf.gesture(finger_angle) == 'good' and label == 'Left':
+                if ggf.gesture(finger_angle) == 'good' and label == 'Left' and (
+                        playerCh2.image is not player_hero or player_hero_eff):
                     playerCh2.shoot()
-                if ggf.gesture(finger_angle) == 'good' and label == 'Right':
+                if ggf.gesture(finger_angle) == 'good' and label == 'Right' and (
+                        playerCh2.image is not player_hero or player_hero_eff):
                     playerCh2.shoot()
+
+                # 变身
+                if ggf.gesture(finger_angle) == 'one' and label == 'Left':
+                    playerCh2.image = player_hero
+                elif ggf.gesture(finger_angle) == 'paper' and label == 'Left':
+                    playerCh2.image = player_image
+                if ggf.gesture(finger_angle) == 'one' and label == 'Right':
+                    playerCh2.image = player_hero
+                elif ggf.gesture(finger_angle) == 'paper' and label == 'Left':
+                    playerCh2.image = player_image
+
+                # hero技能
+                if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
+                        finger_angle) == 'scissor' and label == 'Left':
+                    if playerCh2.health <= 200:
+                        playerCh2.health += 0.5
+                        playerCh2.image = player_hero_eff
+                if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
+                        finger_angle) == 'scissor' and label == 'Right':
+                    if playerCh2.health <= 200:
+                        playerCh2.health += 0.5
+                        playerCh2.image = player_hero_eff
 
             cv2.imshow('test', img)
             if cv2.waitKey(5) == ord('q'):
@@ -1663,15 +1707,15 @@ def chapter2():
                 flag_ = False
             draw_game()
             if not game_over:
-                game_window.blit(player_image, playerCh2)
+                game_window.blit(playerCh2.image, playerCh2)
             update_game_ch2()
             pg.display.update()
             clock.tick(config.FPS)
 
 
 # 运行
-draw_init()
-# chapter2()
+# draw_init()
+chapter2()
 
 # 退出
 pg.quit()

@@ -23,3 +23,6 @@ time_2_sound = pg.mixer.Sound('sounds/time2.mp3')
 # BOSS音效
 boss_laser_sound = pg.mixer.Sound('sounds/boss_laser_sound.mp3')
 boss_laser_sound.set_volume(0.3)
+
+# 胜利音效
+winwin_sound = pg.mixer.Sound("sounds/winiwn_sound.mp3")
