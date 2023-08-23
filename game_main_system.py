@@ -100,6 +100,7 @@ class Player(pg.sprite.Sprite):
                     bullets.add(bullet)
                     pg.mixer.Sound.play(game_sound.shoot_sound)
                     self.last_shot_time = current_time
+            # 捡到闪电道具后
                 elif self.gun >= 2:
                     bullet1 = Bullet(self.rect.left, self.rect.top)
                     bullet2 = Bullet(self.rect.right, self.rect.top)
@@ -360,6 +361,7 @@ playCG = False
 
 # 游戏主界面初始化
 def draw_init():
+    pg.display.set_caption("宇宙飞机大战")
     bgm1()
     global playCG
     if not playCG:
@@ -369,6 +371,7 @@ def draw_init():
     while True:
         screen.blit(game_img.init_bg_img, (-100, -250))
         draw_text(screen, '宇宙飞机大战', 64, config.WIDTH / 2, config.HEIGHT / 4 - 130)
+        draw_text(screen, '适度游戏益脑，沉迷游戏伤身', 24, config.WIDTH / 2, config.HEIGHT - 26)
         mx, my = pg.mouse.get_pos()
 
         button_1_text = font.render("Free mode", True, (135, 206, 250))
@@ -651,9 +654,11 @@ def game_main():
                     cursor.execute(sql_record, (highest_score, tk_login.user_name))
                     sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
                     cursor.execute(sql_in, (score, tk_login.user_name))
+                    sql_in_plays = "UPDATE user_base_info SET nums_of_plays = nums_of_plays + %s WHERE user_name = %s"
+                    cursor.execute(sql_in_plays, (1, tk_login.user_name))
                     connect_.commit()
-                draw_text(screen, '你失败了', 26, config.WIDTH / 2, 50)
-                draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
+                draw_text(screen, '你死亡了,分数已保存（若已登入）', 26, config.WIDTH / 2, 50)
+                draw_text(screen, '按任意键继续……', 26, config.WIDTH / 2, 100)
                 pg.mixer.Sound.play(game_sound.die_music)
                 pg.display.update()
                 waiting = True  # 设置一个等待标志
@@ -807,6 +812,7 @@ def store():
                         money = 1000
                         n_2 += 1
                         player.speed += 0.1
+                        playerCh2.speed += 0.1
                         play_bill(money)
                     else:
                         tk.messagebox.showinfo('提示', '分数不足')
@@ -901,12 +907,14 @@ class User_Gui():
                                       y=50)
         # 用户获得的总分
         cur = connect_.cursor()
-        sql = "SELECT score,highest_record FROM user_base_info WHERE user_name = %s"
+        sql = "SELECT score,highest_record,nums_of_plays FROM user_base_info WHERE user_name = %s"
         cur.execute(sql, (tk_login.user_name))
         row = cur.fetchone()
         score = row[0]
         ht_score = row[1]
-        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的最高得分为：" + str(ht_score),
+        play_game_times = row[2]
+        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的最高得分为：" + str(
+            ht_score) + '\n您的自由模式游玩场数为：' + str(play_game_times),
                  font=('宋体', 20), fg="blue",
                  bg='Light Sea Green', relief=SUNKEN).place(x=200, y=80)
 
@@ -957,6 +965,8 @@ enemy_bullet_image = pg.image.load(
 enemy_bullet_image = pg.transform.scale(enemy_bullet_image, (40, 40))
 laser_image = pg.image.load(
     "chapter_2_things/game_sprite/laser.png")
+laser_image_2 = pg.image.load('chapter_2_things/game_sprite/boss_laser_2-removebg-preview.png')
+laser_image_3 = pg.image.load("chapter_2_things/game_sprite/boss_laser_3-removebg-preview.png")
 enemy_image = pg.image.load(
     "chapter_2_things/game_sprite/enemy.png")
 player_bullet_image = pg.image.load(
@@ -965,6 +975,11 @@ player_died = pg.image.load(
     "imgs/player_died-removebg-preview.png")
 player_hero = pg.image.load("chapter_2_things/game_sprite/player_king_mode.png")
 player_hero_eff = pg.image.load("chapter_2_things/game_sprite/player_king_mode_eff.png")
+enemy_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
+enemy_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_3.png')
+enemy_bullet_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_2.png')
+enemy_bullet_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_3.png')
+player_hero_min = pg.image.load('chapter_2_things/game_sprite/player_king_mode_min.png')
 
 # 定义敌人属性
 enemy_width = 70
@@ -1132,18 +1147,12 @@ def update_enemies():
                 expl = Exploration(enemy.center, 'small')
                 ch2_all_sprites.add(expl)
                 enemies.remove(enemy)
-                playerCh2.health -= 10
+                playerCh2.health -= 25
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                else:
-                    pass
-                    # Make the player briefly invisible if they have just lost a life
-                    # playerCh2.invisible = True
-                    # playerCh2.player_invisible_delay = playerCh2.player_invisible_delay_time
                 if playerCh2.lives == 0:
                     game_over = True
-            # player_sprite.bottom = -100
 
 
 # 玩家有被打，飞机普通子弹打玩家
@@ -1180,12 +1189,6 @@ def check_collisions():
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                else:
-                    pass
-                    # # Make the player briefly invisible if they have just lost a life
-                    # player_invisible = True
-                    # player_invisible_delay = player_invisible_delay_time
-                    # # player_sprite.bottom = -100
                 if playerCh2.lives == 0:
                     if tk_login.is_logged_in:
                         # print(ch2_score)
@@ -1243,12 +1246,6 @@ def check_boss_collisions():
                 if playerCh2.health <= 0:
                     playerCh2.health = 100
                     playerCh2.lives -= 1
-                else:
-                    pass
-                    # Make the player briefly invisible if they have just lost a life
-                    # playerCh2.invisible = True
-                    # playerCh2.player_flash_delay = playerCh2.player_invisible_delay_time
-                    # player_sprite.bottom = -100
                 if playerCh2.lives == 0:
                     if tk_login.is_logged_in:
                         # print(ch2_score)
@@ -1274,7 +1271,7 @@ def create_boss_laser():
 
 # 更新boss；玩家有被打
 def update_boss():
-    global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed, game_over, ch2_score
+    global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed, game_over, ch2_score, level
     if boss_health > 0:
         # Move the boss around randomly
         boss_sprite.move_ip(random.randint(-12, 13), random.randint(-13, 12))
@@ -1299,8 +1296,15 @@ def update_boss():
     if boss_laser_delay == 0:
         create_boss_laser()
         # print (boss_laser_delay)
-        boss_laser_delay = 240
-
+        if level == 1:
+            boss_laser_delay = 240
+        elif level == 2:
+            boss_laser_delay = 220
+        elif level == 3:
+            boss_laser_delay = 200
+        elif level == 4:
+            boss_laser_delay = 160
+    # 玩家碰到BOSS
     if not playerCh2.invisible:
         if playerCh2.rect.colliderect(boss_sprite):
             # Move the boss away from the player
@@ -1312,7 +1316,7 @@ def update_boss():
                 boss_sprite.move_ip(0, -10)
             else:
                 boss_sprite.move_ip(0, 10)
-            playerCh2.health -= 1
+            playerCh2.health -= 5
             if playerCh2.health == 0:
                 playerCh2.health = 100
                 playerCh2.lives -= 1
@@ -1331,7 +1335,7 @@ def update_boss():
                     cursor.execute(sql_in, (ch2_score, tk_login.user_name))
                     connect_.commit()
                 game_over = True
-
+    # 玩家被镭射打
     for laser in boss_lasers:
         laser.move_ip(0, laser_speed)
         if not playerCh2.invisible:
@@ -1344,11 +1348,6 @@ def update_boss():
                         playerCh2.lives -= 1
                     else:
                         game_over = True
-                else:
-                    pass
-                    # Make the player briefly invisible if they have just lost a life
-                    # playerCh2.invisible = True
-                    # playerCh2.player_invisible_delay = playerCh2.player_invisible_delay_time
                 if playerCh2.lives == 0:
                     if tk_login.is_logged_in:
                         # print(ch2_score)
@@ -1358,7 +1357,6 @@ def update_boss():
                         cursor.execute(sql_in, (ch2_score, tk_login.user_name))
                         connect_.commit()
                     game_over = True
-
         if laser.bottom < 0:
             boss_lasers.remove(laser)
 
@@ -1395,18 +1393,19 @@ def create_level_2():
     boss_bullet_speed += 1
     enemies_to_spawn += 10
     boss_health += 500
-    enemy_image = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
+    enemy_image = enemy_image_2
     level += 1
 
 
 def create_level_3():
-    global boss_image, level, boss_health, enemies_to_spawn, boss_bullet_speed
+    global boss_image, level, boss_health, enemies_to_spawn, boss_bullet_speed, enemy_image
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_3.png")
     enemies_to_spawn += 5
     boss_image = pg.transform.scale(boss_image, (230, 230))
     boss_health += 1000
     boss_bullet_speed += 1
+    enemy_image = enemy_image_3
     level += 1
 
 
@@ -1426,7 +1425,7 @@ def update_game_ch2():
         create_level()
     if (level == 2) and (enemies_spawned > 10):
         create_level_2()
-    if (level == 3) and (enemies_spawned > 15):
+    if (level == 3) and (enemies_spawned > 20):
         create_level_3()
 
     global game_over, boss_image, ch2_score
@@ -1490,10 +1489,12 @@ def clear_all():
     player_bullets.clear()
 
 
+# 定义升级后的效果增量
 up_health = 0
 up_live = 0
 
 
+# PVE模式主程序
 def chapter2():
     # 背景音乐
     bgm2()
@@ -1552,7 +1553,7 @@ def chapter2():
                 for x in range(0, 800, background_image.get_width()):
                     for y in range(0, 1200, background_image.get_height()):
                         background_surface.blit(background_image, (x, y))
-            if level == 4 and (enemies_spawned > 15):
+            if level == 4 and (enemies_spawned > 20):
                 background_image = pg.image.load(
                     "chapter_2_things/game_sprite/chapter_bg_3.jpg")
                 for x in range(0, 800, background_image.get_width()):
@@ -1648,18 +1649,18 @@ def chapter2():
                 elif cy < h / 2:
                     playerCh2.rect.y -= playerCh2.speed
 
-                # 射击
+                # 射击,hero模式不能射击
                 if ggf.gesture(finger_angle) == 'rock' and label == 'Left' and (
-                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'rock' and label == 'Right' and (
-                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'good' and label == 'Left' and (
-                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
                     playerCh2.shoot()
                 if ggf.gesture(finger_angle) == 'good' and label == 'Right' and (
-                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff):
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
                     playerCh2.shoot()
 
                 # 变身
@@ -1680,9 +1681,7 @@ def chapter2():
                         playerCh2.image = player_hero_eff
                 if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
                         finger_angle) == 'scissor' and label == 'Right':
-                    if playerCh2.health <= max_health + 50:
-                        playerCh2.health += 0.5
-                        playerCh2.image = player_hero_eff
+                    playerCh2.image = player_hero_min
 
             cv2.imshow('test', img)
             if cv2.waitKey(5) == ord('q'):
@@ -1716,9 +1715,19 @@ def chapter2():
             draw_health(game_window, health, 10, 10, str(health), 18, config.RED)
             for bullet in enemy_bullets:
                 # pygame.draw.rect(game_window, red, bullet)
-                game_window.blit(enemy_bullet_image, bullet)
+                if level == 1 or level == 2:
+                    game_window.blit(enemy_bullet_image, bullet)
+                elif level == 3:
+                    game_window.blit(enemy_bullet_image_2, bullet)
+                elif level == 4:
+                    game_window.blit(enemy_bullet_image_3, bullet)
             for laser in boss_lasers:
-                game_window.blit(laser_image, laser)
+                if level == 1 or level == 2:
+                    game_window.blit(laser_image, laser)
+                elif level == 3:
+                    game_window.blit(laser_image_3, laser)
+                elif level == 4:
+                    game_window.blit(laser_image_2, laser)
             if lives <= 3:
                 draw_lives(game_window, lives, game_img.player_lives_img, config.WIDTH - 100, 15)
             else:

@@ -5,8 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3a56f2b1-c7a5-41b5-93ea-d2cdb1a67091" name="Changes" comment="完整">
-      <change afterPath="$PROJECT_DIR$/sounds/store_music.mp3" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/boss_laser_2-removebg-preview.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/boss_laser_3-removebg-preview.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/enemy_3.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/enemy_bullet_2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/enemy_bullet_3.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/player_king_mode_min.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chapter_2_things/game_sprite/bomb.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chapter_2_things/game_sprite/boss.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chapter_2_things/game_sprite/enemy_img_2.png" beforeDir="false" afterPath="$PROJECT_DIR$/chapter_2_things/game_sprite/enemy_img_2.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chapter_2_things/game_sprite/power_item.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/game_main_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_main_system.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -56,8 +65,8 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\zhj20\pycharm_projects\PycharmProjects\game_make_project\sounds" />
       <recent name="C:\Users\zhj20\pycharm_projects\PycharmProjects\game_make_project\chapter_2_things\game_sprite" />
+      <recent name="C:\Users\zhj20\pycharm_projects\PycharmProjects\game_make_project\sounds" />
     </key>
   </component>
   <component name="RunManager" selected="Python.game_main_system">
@@ -125,7 +134,8 @@
       <workItem from="1692717809554" duration="5627000" />
       <workItem from="1692751217540" duration="128000" />
       <workItem from="1692751380027" duration="918000" />
-      <workItem from="1692752560684" duration="2625000" />
+      <workItem from="1692752560684" duration="7331000" />
+      <workItem from="1692771418818" duration="6467000" />
     </task>
     <task id="LOCAL-00001" summary="完整">
       <option name="closed" value="true" />
@@ -146,7 +156,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="完整" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/game_make_project$game_main_system.coverage" NAME="game_main_system Coverage Results" MODIFIED="1692755204653" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/game_make_project$game_main_system.coverage" NAME="game_main_system Coverage Results" MODIFIED="1692776934052" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/game_make_project$Tracking_projectile_test.coverage" NAME="Tracking_projectile_test Coverage Results" MODIFIED="1692752266338" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
