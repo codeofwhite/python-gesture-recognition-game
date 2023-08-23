@@ -1,7 +1,6 @@
-# 精灵和精灵派生类；
 import pygame
 
-# 屏幕大小的常量
+# 设定屏幕大小的常量
 SCREEN_RECT = pygame.Rect(0, 0, 800, 600)
 
 
@@ -24,7 +23,7 @@ class BackGroud(GameSprite):
     """游戏背景"""
 
     def __init__(self, is_alt=False, url=None):
-        # is_alt区分时第一张图像还是第二张
+        # is_alt的作用是区分时第一张图像还是第二张
         # 1.调用父类党法完成基本设置
         super().__init__(url)
         # 2.判断是否时交替图像，如果是，需要设置初始位置

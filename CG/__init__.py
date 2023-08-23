@@ -1,13 +1,13 @@
-import sys
 import cv2
-import numpy as np
 from ffpyplayer.player import MediaPlayer
 
 
 def PlayVideo():
+    # 导入视频文件
     video_path = "video/CG_TEST1.avi"
     video = cv2.VideoCapture(video_path)
     player = MediaPlayer(video_path)
+    # cv播放视频的操作
     while True:
         grabbed, frame = video.read()
         audio_frame, val = player.get_frame()

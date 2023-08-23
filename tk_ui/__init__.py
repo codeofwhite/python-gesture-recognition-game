@@ -1,13 +1,11 @@
+# 这个就实训期间的小作业的改良版本
 import tkinter.messagebox
 import pymysql
-import mysql.connector
 import tkinter as tk
 from tkinter import *
-from tkinter import messagebox
-from tkinter import ttk
-from tkinter.messagebox import *
 from PIL import Image, ImageTk
 
+# 设定参数
 is_logged_in = False
 conn = pymysql.connect(host="localhost", user="root", port=3307, password="Jason20040903", database="user_info",
                        charset="utf8")
@@ -18,6 +16,7 @@ class My_Gui():
     def __init__(self):
         self.main_screen = tk.Tk()
 
+    # 登录页面
     def set_init_window(self):
         self.main_screen.geometry('600x500')
         self.main_screen.resizable(False, False)
@@ -72,6 +71,7 @@ class My_Gui():
 
         self.main_screen.mainloop()
 
+    # 注册页面
     def sign_up(self, canvas, user_name):
         # self.main_withdraw.withdraw() 直接让主页面消失
 
@@ -125,6 +125,7 @@ class My_Gui():
         btn_confirm_sign_up.place(x=180, y=130)
         entry_user_pwd_confirm.bind("<Return>", lambda event: btn_confirm_sign_up.invoke())
 
+    # 按下登录按钮事件
     def login_event(self, entry_name, entry_pass, canvas):
         global user_name
         user_name = entry_name
@@ -153,6 +154,7 @@ class My_Gui():
             if is_signup:
                 self.sign_up(canvas, entry_name)
 
+    # 按下注册按钮事件
     def sign_event(self, entry_name, entry_pass, entry_pass_con):
         curs = conn.cursor()
         curs.execute("use user_info")
@@ -162,7 +164,7 @@ class My_Gui():
             tkinter.messagebox.showwarning("提示", "请输入账号密码！")
         elif entry_pass != entry_pass_con:
             tkinter.messagebox.showwarning("提示", "两次密码不一致！")
-        # 在数据库比对
+        # 在数据库比对有无此账号
         else:
             if user_data.real:
                 tk.messagebox.showwarning(title='警告', message='该注册账号已存在')

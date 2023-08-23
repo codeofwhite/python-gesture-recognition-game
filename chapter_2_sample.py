@@ -1,3 +1,4 @@
+# chapter2游戏制作的模板
 import pygame
 import random
 import sys
