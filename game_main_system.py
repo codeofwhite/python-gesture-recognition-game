@@ -1063,6 +1063,8 @@ player_hero_min.set_colorkey(config.BLACK)
 queen_bullet = pg.image.load('chapter_2_things/game_sprite/queen_bullet_img-removebg-preview.png')
 queen_bullet.set_colorkey(config.BLACK)
 
+queen_shot_sound = pg.mixer.Sound('sounds/leap_bullet_sound.mp3')
+
 # 定义敌人属性
 enemy_width = 70
 enemy_height = 70
@@ -1134,6 +1136,10 @@ class PlayerCh2(pg.sprite.Sprite):
         current_time = pg.time.get_ticks()
         # 设置射击间隔
         if current_time - self.last_shot_time >= 300:
+            if playerCh2.image == player_image:
+                pg.mixer.Sound.play(game_sound.shoot_sound)
+            elif playerCh2.image == player_queen_img:
+                pg.mixer.Sound.play(queen_shot_sound)
             create_player_bullet()
             self.last_shot_time = current_time
 
@@ -1531,7 +1537,7 @@ def update_game_ch2():
         create_level()
     if (level == 2) and (enemies_spawned > 15):
         create_level_2()
-    if (level == 3) and (enemies_spawned > 40):
+    if (level == 3) and (enemies_spawned > 35):
         create_level_3()
 
     global game_over, boss_image, ch2_score
@@ -1657,13 +1663,13 @@ def chapter2():
         w, h = 600, 400  # 图像的尺寸
         game_lose = False
         while cap.isOpened() and running:
-            if level == 3 and (enemies_spawned > 10):
+            if level == 3 and (enemies_spawned > 15):
                 background_image = pg.image.load(
                     "chapter_2_things/game_sprite/chapter_bg2.jpg")
                 for x in range(0, 800, background_image.get_width()):
                     for y in range(0, 1200, background_image.get_height()):
                         background_surface.blit(background_image, (x, y))
-            if level == 4 and (enemies_spawned > 20):
+            if level == 4 and (enemies_spawned > 35):
                 background_image = pg.image.load(
                     "chapter_2_things/game_sprite/chapter_bg_3.jpg")
                 for x in range(0, 800, background_image.get_width()):
