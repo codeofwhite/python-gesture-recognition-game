@@ -1024,8 +1024,13 @@ laser_image_2 = pg.image.load('chapter_2_things/game_sprite/boss_laser_2-removeb
 laser_image_3 = pg.image.load("chapter_2_things/game_sprite/boss_laser_3-removebg-preview.png")
 enemy_image = pg.image.load(
     "chapter_2_things/game_sprite/enemy.png")
-player_bullet_image = pg.image.load(
+
+player_bullet = pg.image.load(
     "chapter_2_things/game_sprite/player_bullet.png")
+player_bullet.set_colorkey(config.BLACK)
+
+player_bullet_image = player_bullet
+
 player_died = pg.image.load(
     "imgs/player_died-removebg-preview.png")
 # 不加这个坟就迁远
@@ -1049,8 +1054,14 @@ enemy_bullet_image_2.set_colorkey(config.BLACK)
 enemy_bullet_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_3.png')
 enemy_bullet_image_3.set_colorkey(config.BLACK)
 
-player_hero_min = pg.image.load('chapter_2_things/game_sprite/player_king_mode_min.png')
+player_queen_img = pg.image.load('chapter_2_things/game_sprite/player_queen.png')
+player_queen_img.set_colorkey(config.BLACK)
+
+player_hero_min = pg.image.load('chapter_2_things/game_sprite/player_queen_min.png')
 player_hero_min.set_colorkey(config.BLACK)
+
+queen_bullet = pg.image.load('chapter_2_things/game_sprite/queen_bullet_img-removebg-preview.png')
+queen_bullet.set_colorkey(config.BLACK)
 
 # 定义敌人属性
 enemy_width = 70
@@ -1313,8 +1324,14 @@ def check_boss_collisions():
     for bullet in player_bullets:
         if bullet[0].colliderect(boss_sprite):
             player_bullets.remove(bullet)
-            boss_health -= 10
-            ch2_score += 10
+            # 普通状态适合打boss
+            if player_bullet_image == player_bullet:
+                boss_health -= 10
+                ch2_score += 10
+            # queen 不适合打boss
+            elif player_bullet_image == queen_bullet:
+                boss_health -= 4
+                ch2_score += 4
     for bullet in enemy_bullets:
         if not playerCh2.invisible:
             if bullet.colliderect(playerCh2.rect):
@@ -1444,6 +1461,20 @@ def bgm2():
     pg.mixer.music.play(-1)
 
 
+def bgm3():
+    pg.mixer.music.load(
+        'chapter_2_things/bgm_3.mp3')
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
+
+
+def bgm4():
+    pg.mixer.music.load(
+        'chapter_2_things/bgm4.mp3')
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
+
+
 # 升级之后的事，这一函数的enemies_spawned看有没有用
 def create_level():
     global level, enemy_speed, enemy_fire_delay, enemy_spawn_delay, enemies_spawned, enemies_to_spawn, enemy_bullet_speed
@@ -1458,6 +1489,8 @@ def create_level():
 
 def create_level_2():
     global boss_image, level, boss_health, boss_bullet_speed, enemy_spawn_delay, enemies_to_spawn, enemy_image
+    # 播放音乐
+    bgm4()
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_level_2-removebg-preview.png")
     boss_image = pg.transform.scale(boss_image, (230, 230))
@@ -1470,6 +1503,8 @@ def create_level_2():
 
 def create_level_3():
     global boss_image, level, boss_health, enemies_to_spawn, boss_bullet_speed, enemy_image
+    # 播放音乐
+    bgm3()
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_3.png")
     enemies_to_spawn += 5
@@ -1492,11 +1527,11 @@ def update_game_ch2():
     playerCh2.update()
     update_boss()
     # print(enemies_spawned)
-    if (level == 1) and (enemies_spawned > 5):
+    if (level == 1) and (enemies_spawned > 10):
         create_level()
-    if (level == 2) and (enemies_spawned > 10):
+    if (level == 2) and (enemies_spawned > 15):
         create_level_2()
-    if (level == 3) and (enemies_spawned > 20):
+    if (level == 3) and (enemies_spawned > 40):
         create_level_3()
 
     global game_over, boss_image, ch2_score
@@ -1738,14 +1773,21 @@ def chapter2():
                         playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
                     playerCh2.shoot()
 
+                # queen 子弹
+                if playerCh2.image == player_queen_img:
+                    global player_bullet_image
+                    player_bullet_image = queen_bullet
+                elif playerCh2.image == player_image:
+                    player_bullet_image = player_bullet
+
                 # 变身成hero
                 if ggf.gesture(finger_angle) == 'one' and label == 'Left':
                     playerCh2.image = player_hero
                 elif ggf.gesture(finger_angle) == 'paper' and label == 'Left':
                     playerCh2.image = player_image
                 if ggf.gesture(finger_angle) == 'one' and label == 'Right':
-                    playerCh2.image = player_hero
-                elif ggf.gesture(finger_angle) == 'paper' and label == 'Left':
+                    playerCh2.image = player_queen_img
+                elif ggf.gesture(finger_angle) == 'paper' and label == 'Right':
                     playerCh2.image = player_image
 
                 # hero的技能，左手是回血，右手是变小
