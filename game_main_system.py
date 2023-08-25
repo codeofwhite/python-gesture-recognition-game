@@ -1,4 +1,3 @@
-# 和pyqt会有窗口大小的冲突
 import sys
 import pymysql
 import tkinter as tk
@@ -102,11 +101,19 @@ class Player(pg.sprite.Sprite):
                     pg.mixer.Sound.play(game_sound.shoot_sound)
                     self.last_shot_time = current_time
                 # 捡到闪电道具后
-                elif self.gun >= 2:
+                elif self.gun == 2:
                     bullet1 = Bullet(self.rect.left, self.rect.top)
                     bullet2 = Bullet(self.rect.right, self.rect.top)
                     all_sprites.add(bullet1, bullet2)
                     bullets.add(bullet1, bullet2)
+                    pg.mixer.Sound.play(game_sound.shoot_sound)
+                    self.last_shot_time = current_time
+                elif self.gun >= 3:
+                    bullet1 = Bullet(self.rect.left, self.rect.top)
+                    bullet2 = Bullet(self.rect.right, self.rect.top)
+                    bullet3 = Bullet(self.rect.centerx, self.rect.top)
+                    all_sprites.add(bullet1, bullet2, bullet3)
+                    bullets.add(bullet1, bullet2, bullet3)
                     pg.mixer.Sound.play(game_sound.shoot_sound)
                     self.last_shot_time = current_time
 
@@ -622,7 +629,7 @@ def game_main():
                 expl = Exploration(hit.rect.center, 'big')
                 all_sprites.add(expl)
                 # 掉宝的机率，越接近1越不掉宝
-                if random.random() > 0.85 - odds:
+                if random.random() > 0.65 - odds:
                     pow = Power(hit.rect.center)
                     all_sprites.add(pow)
                     # powers = pg.sprite.Group() 这个地方加上去就在发射时吃不到道具了，因为创建了一个新的精灵模组，飞机只能和最后的发生互动
@@ -1015,15 +1022,10 @@ player_image = pg.image.load(
 boss_image = pg.image.load(
     "chapter_2_things/game_sprite/boss_2.png")
 boss_image = pg.transform.scale(boss_image, (230, 230))
-enemy_bullet_image = pg.image.load(
-    "chapter_2_things/game_sprite/enemy_bullet.png")
-enemy_bullet_image = pg.transform.scale(enemy_bullet_image, (40, 40))
 laser_image = pg.image.load(
     "chapter_2_things/game_sprite/laser.png")
 laser_image_2 = pg.image.load('chapter_2_things/game_sprite/boss_laser_2-removebg-preview.png')
 laser_image_3 = pg.image.load("chapter_2_things/game_sprite/boss_laser_3-removebg-preview.png")
-enemy_image = pg.image.load(
-    "chapter_2_things/game_sprite/enemy.png")
 
 player_bullet = pg.image.load(
     "chapter_2_things/game_sprite/player_bullet.png")
@@ -1033,7 +1035,7 @@ player_bullet_image = player_bullet
 
 player_died = pg.image.load(
     "imgs/player_died-removebg-preview.png")
-# 不加这个坟就迁远
+# 不加这个坟就迁远咯
 player_died.set_colorkey(config.BLACK)
 
 player_hero = pg.image.load("chapter_2_things/game_sprite/player_king_mode.png")
@@ -1042,15 +1044,20 @@ player_hero.set_colorkey(config.BLACK)
 player_hero_eff = pg.image.load("chapter_2_things/game_sprite/player_king_mode_eff.png")
 player_hero_eff.set_colorkey(config.BLACK)
 
+# 小兵皮肤
+enemy_image = pg.image.load(
+    "chapter_2_things/game_sprite/enemy.png")
 enemy_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
 enemy_image_2.set_colorkey(config.BLACK)
-
 enemy_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_3.png')
 enemy_image_3.set_colorkey(config.BLACK)
 
+# 敌人子弹
+enemy_bullet_image = pg.image.load(
+    "chapter_2_things/game_sprite/enemy_bullet.png")
+enemy_bullet_image = pg.transform.scale(enemy_bullet_image, (40, 40))
 enemy_bullet_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_2.png')
 enemy_bullet_image_2.set_colorkey(config.BLACK)
-
 enemy_bullet_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_3.png')
 enemy_bullet_image_3.set_colorkey(config.BLACK)
 
@@ -1063,7 +1070,16 @@ player_hero_min.set_colorkey(config.BLACK)
 queen_bullet = pg.image.load('chapter_2_things/game_sprite/queen_bullet_img-removebg-preview.png')
 queen_bullet.set_colorkey(config.BLACK)
 
+# 精灵女王射击
 queen_shot_sound = pg.mixer.Sound('sounds/leap_bullet_sound.mp3')
+
+# boss 出场声音
+boss_sound1 = pg.mixer.Sound('sounds/boss_go_sound1.mp3')
+boss_sound2 = pg.mixer.Sound('sounds/boss_go_sound_2.mp3')
+boss_sound3 = pg.mixer.Sound('sounds/boss_go_sound_3.mp3')
+
+# 回血音效
+super_sya = pg.mixer.Sound('sounds/sya_sound.mp3')
 
 # 定义敌人属性
 enemy_width = 70
@@ -1211,17 +1227,6 @@ def update_enemies():
         enemy.move_ip(0, enemy_speed)
         if enemy.top > WINDOWHEIGHT:
             enemies.remove(enemy)
-            # global player_lives
-            # player_lives -= 1
-            # if player_lives == 0:
-            #     global game_over
-            #     game_over = True
-            # else:
-            #     # Make the player briefly invisible if they have just lost a life
-            #     global player_invisible, player_invisible_delay
-            #     player_invisible = True
-            #     player_invisible_delay = 120
-            # player_sprite.bottom = -100
 
         # Randomly fire bullets
         global enemy_fire_delay
@@ -1264,17 +1269,6 @@ def check_collisions():
                 player_bullets.remove(bullet)
                 enemies.remove(enemy)
                 ch2_score += 10
-                # if random.random() < 0.1:
-                #     item_x = enemy.centerx - item_width / 2
-                #     item_y = enemy.bottom
-                #     item_sprite = pygame.Rect(item_x, item_y, item_width, item_height)
-                #     items.append((item_sprite, "bullet_speed_up"))
-                # # Add chance for enemy to drop bomb item
-                # elif random.random() < 0.1:
-                #     item_x = enemy.centerx - item_width / 2
-                #     item_y = enemy.bottom
-                #     item_sprite = pygame.Rect(item_x, item_y, item_width, item_height)
-                #     items.append((item_sprite, "bomb"))
 
             # Check for collisions between player and enemy bullets
     if not playerCh2.invisible:
@@ -1500,6 +1494,7 @@ def create_level_2():
     boss_image = pg.image.load(
         "chapter_2_things/game_sprite/boss_level_2-removebg-preview.png")
     boss_image = pg.transform.scale(boss_image, (230, 230))
+    pg.mixer.Sound.play(boss_sound2)
     boss_bullet_speed += 1
     enemies_to_spawn += 10
     boss_health += 500
@@ -1517,6 +1512,7 @@ def create_level_3():
     boss_image = pg.transform.scale(boss_image, (230, 230))
     boss_health += 1000
     boss_bullet_speed += 1
+    pg.mixer.Sound.play(boss_sound3)
     enemy_image = enemy_image_3
     level += 1
 
@@ -1537,7 +1533,7 @@ def update_game_ch2():
         create_level()
     if (level == 2) and (enemies_spawned > 15):
         create_level_2()
-    if (level == 3) and (enemies_spawned > 35):
+    if (level == 3) and (enemies_spawned > 28):
         create_level_3()
 
     global game_over, boss_image, ch2_score
@@ -1669,7 +1665,7 @@ def chapter2():
                 for x in range(0, 800, background_image.get_width()):
                     for y in range(0, 1200, background_image.get_height()):
                         background_surface.blit(background_image, (x, y))
-            if level == 4 and (enemies_spawned > 35):
+            if level == 4 and (enemies_spawned > 28):
                 background_image = pg.image.load(
                     "chapter_2_things/game_sprite/chapter_bg_3.jpg")
                 for x in range(0, 800, background_image.get_width()):
@@ -1802,6 +1798,9 @@ def chapter2():
                     if playerCh2.health <= max_health + 50:
                         playerCh2.health += 0.5
                         playerCh2.image = player_hero_eff
+                        pg.mixer.Sound.play(super_sya)
+                else:
+                    super_sya.stop()
                 if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
                         finger_angle) == 'scissor' and label == 'Right':
                     playerCh2.image = player_hero_min
@@ -1883,6 +1882,7 @@ def chapter2():
             # 只创造一次boss
             if flag_:
                 create_boss()
+                pg.mixer.Sound.play(boss_sound1)
                 flag_ = False
             # 总绘制游戏
             draw_game()

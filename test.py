@@ -1,4 +1,3 @@
-# 和pyqt会有窗口大小的冲突
 import sys
 import pymysql
 import tkinter as tk
@@ -6,6 +5,7 @@ import cv2
 import mediapipe as mp
 import pygame as pg
 import random
+import CG
 
 from cv2 import VideoCapture
 
@@ -23,11 +23,12 @@ from PIL import Image, ImageTk
 # 初始化pygame游戏
 pg.init()
 pg.mixer.init()
+# 窗口大小
 SIZE = WINDOWWIDTH, WINDOWHEIGHT = config.WIDTH, config.HEIGHT
 screen = pg.display.set_mode(size=SIZE)
-pg.display.set_caption("打飞机")
+pg.display.set_caption("宇宙飞机大战")
 # 设置图标，封装成exe也有用
-pg.display.set_icon(pg.image.load('C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make/img/player.png'))
+pg.display.set_icon(pg.image.load('imgs/img/player.png'))
 clock = pg.time.Clock()
 
 # 手势识别初始化
@@ -39,7 +40,16 @@ mp_hands = mp.solutions.hands  # mediapipe 偵測手掌方法
 INVINCIBLE_TIME = pg.USEREVENT + 2
 
 
-# 玩家
+# 第一种背景音乐
+def bgm1():
+    # 背景音乐
+    pg.mixer.music.load(
+        'sounds/sound/background.ogg')  # 这个会重复播放
+    pg.mixer.music.set_volume(0.3)
+    pg.mixer.music.play(-1)
+
+
+# 玩家类
 class Player(pg.sprite.Sprite):
     def __init__(self):
         pg.sprite.Sprite.__init__(self)
@@ -60,9 +70,9 @@ class Player(pg.sprite.Sprite):
         self.invincible = False
 
     def update(self):
-        now = pg.time.get_ticks()
+        now_main = pg.time.get_ticks()
         # print(now - self.gun_time)
-        if self.gun >= 2 and now - self.gun_time > 5000:
+        if self.gun >= 2 and now_main - self.gun_time > 5000:
             self.gun = 1
             self.image = game_img.player_img
         if self.hidden and pg.time.get_ticks() - self.hide_time > 3000:
@@ -78,51 +88,63 @@ class Player(pg.sprite.Sprite):
         if self.rect.top < 0:
             self.rect.top = 0
 
+    # 发射普通子弹
     def shoot_right(self):
         if not self.hidden:
             current_time = pg.time.get_ticks()
             # 设置射击间隔
-            if current_time - self.last_shot_time >= 300:
+            if current_time - self.last_shot_time >= 360:
                 if self.gun == 1:
                     bullet = Bullet(self.rect.centerx, self.rect.top)
                     all_sprites.add(bullet)
                     bullets.add(bullet)
                     pg.mixer.Sound.play(game_sound.shoot_sound)
                     self.last_shot_time = current_time
-                elif self.gun >= 2:
+                # 捡到闪电道具后
+                elif self.gun == 2:
                     bullet1 = Bullet(self.rect.left, self.rect.top)
                     bullet2 = Bullet(self.rect.right, self.rect.top)
                     all_sprites.add(bullet1, bullet2)
                     bullets.add(bullet1, bullet2)
                     pg.mixer.Sound.play(game_sound.shoot_sound)
                     self.last_shot_time = current_time
+                elif self.gun >= 3:
+                    bullet1 = Bullet(self.rect.left, self.rect.top)
+                    bullet2 = Bullet(self.rect.right, self.rect.top)
+                    bullet3 = Bullet(self.rect.centerx, self.rect.top)
+                    all_sprites.add(bullet1, bullet2, bullet3)
+                    bullets.add(bullet1, bullet2, bullet3)
+                    pg.mixer.Sound.play(game_sound.shoot_sound)
+                    self.last_shot_time = current_time
 
+    # 发射镭射
     def shoot_left(self):
         if not self.hidden:
             current_time = pg.time.get_ticks()
             # 设置射击间隔
-            if current_time - self.last_shot_time >= 1500:
+            if current_time - self.last_shot_time >= 2150:
                 laser = Laser(self.rect.centerx, self.rect.top)
                 all_sprites.add(laser)
                 lasers.add(laser)
                 self.last_shot_time = current_time
                 pg.mixer.Sound.play(game_sound.laser_sound)
 
-    # 复活后的隐藏状态
+    # 复活后的隐藏无敌状态
     def hide(self):
+        # print('hide')
         self.hidden = True
         self.hide_time = pg.time.get_ticks()
         self.image = game_img.player_inv
         self.invincible = True
 
-    # 捡到闪电
+    # 捡到闪电，升级子弹
     def gunup(self):
         if not self.hidden:
             self.gun += 1
             self.gun_time = pg.time.get_ticks()
             self.image = game_img.player_gunup
 
-    # 捡到时钟
+    # 捡到时钟，无敌效果
     def invincible_time(self):
         if not self.hidden:
             self.invincible = True
@@ -130,7 +152,7 @@ class Player(pg.sprite.Sprite):
             pg.time.set_timer(INVINCIBLE_TIME, 5000)  # 设置定时器，3秒后触发无敌时间事件
 
 
-# 陨石
+# 陨石类
 class Rock(pg.sprite.Sprite):
     def __init__(self):
         pg.sprite.Sprite.__init__(self)
@@ -164,18 +186,19 @@ class Rock(pg.sprite.Sprite):
         self.rect.y += self.speedy
         self.rect.x += self.speedx
         if self.rect.top > config.HEIGHT or self.rect.left > config.WIDTH or self.rect.right < 0:
+            # 随机生成石块的位置
             self.rect.x = random.randrange(0, config.WIDTH - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
             self.speedy = random.randrange(1, 3)
             self.speedx = random.randrange(-3, 3)
 
 
-# 一般子弹
+# 一般子弹类
 class Bullet(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
         self.image = game_img.bullet_img
-        self.rect = self.image.get_rect()  # 外面的框
+        self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.bottom = y
         self.speedy = -5
@@ -186,7 +209,7 @@ class Bullet(pg.sprite.Sprite):
             self.kill()
 
 
-# 激光柱
+# 激光镭射类
 class Laser(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
@@ -206,7 +229,7 @@ class Laser(pg.sprite.Sprite):
             self.kill()
 
 
-# 陨石爆炸效果
+# 陨石爆炸效果类
 class Exploration(pg.sprite.Sprite):
     def __init__(self, center, size):
         pg.sprite.Sprite.__init__(self)
@@ -219,9 +242,9 @@ class Exploration(pg.sprite.Sprite):
         self.frame_rate = 50  # 如果不设定的话，动画会播放得太快
 
     def update(self):
-        now = pg.time.get_ticks()
-        if now - self.last_update > self.frame_rate:
-            self.last_update = now
+        now_rock = pg.time.get_ticks()
+        if now_rock - self.last_update > self.frame_rate:
+            self.last_update = now_rock
             self.frame += 1
             if self.frame == len(game_img.expl_anim[self.size]):  # 如果是最后一张图片的话
                 self.kill()
@@ -233,7 +256,7 @@ class Exploration(pg.sprite.Sprite):
                 self.rect.center = center
 
 
-# 死亡爆炸效果
+# 死亡爆炸效果类
 class Death(pg.sprite.Sprite):
     def __init__(self, center):
         pg.sprite.Sprite.__init__(self)
@@ -245,9 +268,9 @@ class Death(pg.sprite.Sprite):
         self.frame_rate = 50  # 如果不设定的话，动画会播放得太快
 
     def update(self):
-        now = pg.time.get_ticks()
-        if now - self.last_update > self.frame_rate:
-            self.last_update = now
+        now_death = pg.time.get_ticks()
+        if now_death - self.last_update > self.frame_rate:
+            self.last_update = now_death
             self.frame += 1
             if self.frame == len(game_img.player_expl_img):  # 如果是最后一张图片的话
                 self.kill()
@@ -259,7 +282,7 @@ class Death(pg.sprite.Sprite):
                 self.rect.center = center
 
 
-# 道具
+# 道具类
 class Power(pg.sprite.Sprite):
     def __init__(self, center):
         pg.sprite.Sprite.__init__(self)
@@ -276,22 +299,17 @@ class Power(pg.sprite.Sprite):
             self.kill()
 
 
-# 初始化对象
+# 初始化一部分对象，并且推入all_sprites中
 player = Player()
 bullets = pg.sprite.Group()
-rocks = pg.sprite.Group()
 powers = pg.sprite.Group()
 lasers = pg.sprite.Group()
 all_sprites = pg.sprite.Group()
 all_sprites.add(player)
-for i in range(20):
-    rock = Rock()
-    rocks.add(rock)
-    all_sprites.add(rock)
-score = 0
+rocks = pg.sprite.Group()
 
 
-# 游戏界面显示文字
+# 游戏界面显示文字的函数
 def draw_text(surf, text, size, x, y):
     font = pg.font.Font(game_img.font_name, size)
     text_surface = font.render(text, True, config.WHITE, (0, 0, 0))
@@ -301,16 +319,23 @@ def draw_text(surf, text, size, x, y):
     surf.blit(text_surface, text_rect)
 
 
-# 显示生命值
-def draw_health(surf, hp, x, y, text, size):
+# 显示生命值or称为生命条的函数
+def draw_health(surf, hp, x, y, text, size, color):
+    high = 20
     if hp <= 0:
         hp = 0
+    elif 500 <= hp <= 1000:
+        hp = hp / 2
+        high = 30
+    elif hp > 1000:
+        hp = hp / 5
+        high = 40
     BAR_LENGTH = hp
-    BAR_HEIGHT = 20
+    BAR_HEIGHT = high
     fill = hp
     outline_rect = pg.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
     fill_rect = pg.Rect(x, y, fill, BAR_HEIGHT)
-    pg.draw.rect(surf, config.RED, fill_rect)  # 血条
+    pg.draw.rect(surf, color, fill_rect)  # 血条
     pg.draw.rect(surf, config.WHITE, outline_rect, 2)  # 血条外框
     font = pg.font.Font(game_img.font_name, size)
     text_surface = font.render(text, True, config.WHITE)
@@ -329,23 +354,38 @@ def draw_lives(surf, lives, img, x, y):
         surf.blit(img, img_rect)
 
 
-# 增加陨石
+# 增加新的陨石
 def new_rock():
     r = Rock()
     all_sprites.add(r)
     rocks.add(r)
 
 
-font = pg.font.Font("C:/Windows/Fonts/s8514fix.fon", 32)  # 加载字体
-font_zh = pg.font.Font('C:/Windows/Fonts/msyhbd.ttc', 20)
+# 载入字体
+font = pg.font.Font("Fonts/s8514fix.fon",
+                    32)  # 加载字体
+font_zh = pg.font.Font('Fonts/msyhbd.ttc',
+                       20)
+
+# 播放CG的指标
+playCG = False
 
 
 # 游戏主界面初始化
 def draw_init():
+    pg.display.set_caption("宇宙飞机大战")
+    # 播放音乐
+    bgm1()
+    # 让CG只在游戏启动的时候播放
+    global playCG
+    if not playCG:
+        CG.PlayVideo()
+        playCG = True
     click = False
     while True:
         screen.blit(game_img.init_bg_img, (-100, -250))
-        draw_text(screen, '打飞机', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
+        draw_text(screen, '宇宙飞机大战', 64, config.WIDTH / 2, config.HEIGHT / 4 - 130)
+        draw_text(screen, '适度游戏益脑，沉迷游戏伤身', 24, config.WIDTH / 2, config.HEIGHT - 26)
         mx, my = pg.mouse.get_pos()
 
         button_1_text = font.render("Free mode", True, (135, 206, 250))
@@ -353,27 +393,32 @@ def draw_init():
         button_3_text = font.render("Store", True, (135, 206, 250))
         button_4_text = font.render("Login", True, (135, 206, 250))
         button_5_text = font.render("PVE MODE", True, (135, 206, 250))
+        button_6_text = font_zh.render("关于制作者", True, (135, 206, 250))
 
         button_1_image = game_img.btn1_img
         button_1 = pg.Rect(50, 100, 200, 50)
         screen.blit(button_1_image, button_1)
-        screen.blit(button_1_text, (button_1.x + 10, button_1.y + 20))
+        screen.blit(button_1_text, (button_1.x + 20, button_1.y + 15))
 
         button_2 = pg.Rect(50, 300, 200, 50)
         screen.blit(button_1_image, button_2)
-        screen.blit(button_2_text, (button_2.x + 10, button_2.y + 20))
+        screen.blit(button_2_text, (button_2.x + 20, button_2.y + 15))
 
         button_3 = pg.Rect(50, 400, 200, 50)
         screen.blit(button_1_image, button_3)
-        screen.blit(button_3_text, (button_3.x + 10, button_3.y + 20))
+        screen.blit(button_3_text, (button_3.x + 20, button_3.y + 15))
 
         button_4 = pg.Rect(50, 500, 200, 50)
         screen.blit(button_1_image, button_4)
-        screen.blit(button_4_text, (button_4.x + 10, button_4.y + 20))
+        screen.blit(button_4_text, (button_4.x + 20, button_4.y + 15))
 
-        button_5 = pg.Rect(50, 200, 200, 50)
-        screen.blit(button_1_image, button_5)
-        screen.blit(button_5_text, (button_5.x + 10, button_5.y + 20))
+        button_5 = pg.Rect(25, 175, 250, 100)
+        screen.blit(game_img.btn2_img, button_5)
+        screen.blit(button_5_text, (button_5.x + 75, button_5.y + 42))
+
+        button_6 = pg.Rect(500, 500, 200, 50)
+        screen.blit(button_1_image, button_6)
+        screen.blit(button_6_text, (button_6.x + 20, button_6.y + 15))
 
         if button_1.collidepoint((mx, my)):
             if click:
@@ -392,6 +437,9 @@ def draw_init():
         if button_5.collidepoint((mx, my)):
             if click:
                 chapter2()
+        if button_6.collidepoint((mx, my)):
+            if click:
+                aboutME()
         click = False
 
         # 取得输入
@@ -410,15 +458,17 @@ def draw_init():
         clock.tick(config.FPS)
 
 
+# 连接数据库
 connect_ = pymysql.connect(host="localhost", user="root", port=3307, password="Jason20040903", database="user_info",
                            charset="utf8")
+# 滚动背景
 bg1 = plane_sprite.BackGroud(False,
-                             "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make/img/background.png")
+                             "imgs/img/background.png")
 bg2 = plane_sprite.BackGroud(True,
-                             "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make/img/background.png")
+                             "imgs/img/background.png")
 back_group = pg.sprite.Group(bg1, bg2)
+# 爆率
 odds = 0
-highest_score = 0
 
 # 开启摄像头和显示的参数
 cap: VideoCapture = cv2.VideoCapture(0)  # 开启摄像头
@@ -428,21 +478,37 @@ lineType = cv2.LINE_AA
 
 # 游戏主体
 def game_main():
+    # 初始化石头和道具
+    global rocks
+    global powers
+    all_sprites.remove(rocks)
+    all_sprites.remove(powers)
+    powers = pg.sprite.Group()
+    rocks = pg.sprite.Group()
+    for i in range(25):
+        rock = Rock()
+        rocks.add(rock)
+        all_sprites.add(rock)
+
+    # 玩家初始化
     player.image = game_img.player_img
     health = player.health
     lives = player.lives
     player.rect.centerx = config.WIDTH / 2
     player.rect.bottom = config.HEIGHT - 10
+
+    # 初始化分数
     score = 0
 
+    # 手势识别
     with mp_hands.Hands(model_complexity=0, max_num_hands=1, min_detection_confidence=0.55, static_image_mode=False,
                         min_tracking_confidence=0.55) as hands:
         if not cap.isOpened():
-            print("Cannot open camera")
+            tk.messagebox.showerror("警告", "打开摄像头失败")
             exit()
 
         running = True
-        w, h = 600, 350  # 图像的尺寸
+        w, h = 600, 400  # 摄像头图像的尺寸
 
         while cap.isOpened() and running:
             ret, img = cap.read()
@@ -493,24 +559,43 @@ def game_main():
                         mp_drawing_styles.get_default_hand_landmarks_style(),
                         mp_drawing_styles.get_default_hand_connections_style())
 
-                # 飞船移动
+                # 飞船的移动
                 wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
                 cx = int(wrist.x * w)
                 cy = int(wrist.y * h)
+                # 右
                 if cx > w / 2:
                     player.rect.x += player.speed
+                # 左
                 elif cx < w / 2:
                     player.rect.x -= player.speed
+                # 下
                 if cy > h / 2:
                     player.rect.y += player.speed
+                # 上
                 elif cy < h / 2:
                     player.rect.y -= player.speed
 
                 # 射击
-                if ggf.gesture(finger_angle) == 'rock' and label == 'Left':
-                    player.shoot_left()
-                if ggf.gesture(finger_angle) == 'rock' and label == 'Right':
-                    player.shoot_right()
+                if player.image != game_img.player_img_min:
+                    if ggf.gesture(finger_angle) == 'rock' and label == 'Left':
+                        player.shoot_left()
+                    if ggf.gesture(finger_angle) == 'rock' and label == 'Right':
+                        player.shoot_right()
+                    if ggf.gesture(finger_angle) == 'good' and label == 'Left':
+                        player.shoot_left()
+                    if ggf.gesture(finger_angle) == 'good' and label == 'Right':
+                        player.shoot_right()
+
+                # 缩小,还原效果
+                if ggf.gesture(finger_angle) == 'scissor' and label == 'Left':
+                    player.image = game_img.player_img_min
+                elif ggf.gesture(finger_angle) == 'one' and label == 'Left':
+                    player.image = game_img.player_img
+                if ggf.gesture(finger_angle) == 'scissor' and label == 'Right':
+                    player.image = game_img.player_img_min
+                elif ggf.gesture(finger_angle) == 'one' and label == 'Right':
+                    player.image = game_img.player_img
 
             cv2.imshow('test', img)
             if cv2.waitKey(5) == ord('q'):
@@ -519,6 +604,7 @@ def game_main():
             clock.tick(config.FPS)
             # 特殊反应
             for event in pg.event.get():
+                # 退出游戏
                 if event.type == pg.QUIT:
                     quit_game = tk.messagebox.askyesno("quit", "是否确认退出游戏，您在游戏中获得的积分将消失!")
                     if quit_game:
@@ -526,12 +612,13 @@ def game_main():
                         running = False
                     else:
                         pass
+                # 取消无敌效果
                 if event.type == INVINCIBLE_TIME:
                     player.invincible = False  # 取消无敌状态
                     player.image = game_img.player_img
-                pg.time.set_timer(INVINCIBLE_TIME, 0)  # 取消定时器
+                    pg.time.set_timer(INVINCIBLE_TIME, 0)  # 取消定时器
 
-            # 更新
+            # 全部更新
             all_sprites.update()
 
             # 子弹和陨石碰撞
@@ -541,7 +628,7 @@ def game_main():
                 score += int(hit.radius)
                 expl = Exploration(hit.rect.center, 'big')
                 all_sprites.add(expl)
-                # 掉宝机率
+                # 掉宝的机率，越接近1越不掉宝
                 if random.random() > 0.85 - odds:
                     pow = Power(hit.rect.center)
                     all_sprites.add(pow)
@@ -581,7 +668,9 @@ def game_main():
                     lives -= 1
                     # print(player.lives)
                     player.hide()
+            # 若生命数等于0
             if lives == 0 and not (death.alive()):
+                # 如果登录了则存入数据库中
                 if tk_login.is_logged_in:
                     cursor = connect_.cursor()
                     cursor.execute('use user_info')
@@ -589,16 +678,17 @@ def game_main():
                     cursor.execute(sql_take, (tk_login.user_name))
                     row = cursor.fetchone()
                     table_highest_score = row[0]
-                    global highest_score
                     if table_highest_score < score:
-                        highest_score = score
+                        table_highest_score = score
                     sql_record = "UPDATE user_base_info SET highest_record = %s WHERE user_name = %s"
-                    cursor.execute(sql_record, (highest_score, tk_login.user_name))
+                    cursor.execute(sql_record, (table_highest_score, tk_login.user_name))
                     sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
                     cursor.execute(sql_in, (score, tk_login.user_name))
+                    sql_in_plays = "UPDATE user_base_info SET nums_of_plays = nums_of_plays + %s WHERE user_name = %s"
+                    cursor.execute(sql_in_plays, (1, tk_login.user_name))
                     connect_.commit()
-                draw_text(screen, '你失败了', 26, config.WIDTH / 2, 50)
-                draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
+                draw_text(screen, '你死亡了,分数已保存（若已登入）', 26, config.WIDTH / 2, 50)
+                draw_text(screen, '按任意键继续……', 26, config.WIDTH / 2, 100)
                 pg.mixer.Sound.play(game_sound.die_music)
                 pg.display.update()
                 waiting = True  # 设置一个等待标志
@@ -635,7 +725,7 @@ def game_main():
             # screen.blit(game_img.background_img, (0, 0))  # 显示背景图片的方法
             all_sprites.draw(screen)
             draw_text(screen, str(score), 18, config.WIDTH / 2, 10)
-            draw_health(screen, health, 10, 10, str(health), 18)
+            draw_health(screen, health, 10, 10, str(health), 18, config.RED)
             if lives <= 3:
                 draw_lives(screen, lives, game_img.player_lives_img, config.WIDTH - 100, 15)
             else:
@@ -651,8 +741,16 @@ def help_():
     while True:
         screen.blit(game_img.help_bg, (0, -200))  # 显示图片的方法
         draw_text(screen, '新手教程', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
-        draw_text(screen, '使用手掌移动飞船\n左手握拳发射激光\n右手握拳发射子弹', 26, config.WIDTH / 2,
+        draw_text(screen, '自由模式：手掌移动飞船\n左手握拳发射激光\n右手握拳发射子弹', 26, config.WIDTH / 2,
                   config.HEIGHT / 4 + 100)
+        draw_text(screen, '\n剪刀是变小，one是恢复原本的大小', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 150)
+        draw_text(screen, '\nPVE模式：使用手掌移动飞船\n左右手握拳发射子弹', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 200)
+        draw_text(screen, '\none是切换模式，剪刀是在hero模式下恢复血量', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 250)
+        draw_text(screen, '\n您可以在商店/改装厂进行升级', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 300)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return draw_init()
@@ -660,6 +758,7 @@ def help_():
         clock.tick(config.FPS)
 
 
+# 设置参数
 n_1, n_2, n_3, n_4 = 0, 0, 0, 0  # n 等於 0
 num_font = pg.font.SysFont('Arial', 32)
 
@@ -672,59 +771,128 @@ def draw_num(screen, num, x, y):
     screen.blit(num_text, (x, y))
 
 
+# 定义升级扣钱的效果
+def play_bill(money):
+    if tk_login.is_logged_in:
+        cursor = connect_.cursor()
+        cursor.execute('use user_info')
+        sql_in = "UPDATE user_base_info SET score = score - %s WHERE user_name = %s"
+        cursor.execute(sql_in, (money, tk_login.user_name))
+        connect_.commit()
+
+
 # 商店系统
 def store():
     click = False
+    # 播放音乐
+    store_music = pg.mixer.Sound('sounds/store_music.mp3')
+    pg.mixer.Sound.play(store_music)
     while True:
-        global n_1, n_2, n_3, n_4
+        global n_1, n_2, n_3, n_4, up_health, up_live
         screen.blit(game_img.store_img, (0, -200))  # 显示图片的方法
-        draw_text(screen, '商店', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
+        draw_text(screen, '商店（重启游戏将重置）', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
         mx, my = pg.mouse.get_pos()
-        button_1_text = font_zh.render("增加掉落机率(max10)", True, (135, 206, 250))
-        button_2_text = font_zh.render("增加飞船移动速度(max10)", True, (135, 206, 250))
-        button_3_text = font_zh.render("增加生命条数(max3)", True, (135, 206, 250))
-        button_4_text = font_zh.render("增加生命值上限(max10)", True, (135, 206, 250))
+        button_1_text = font_zh.render("增加掉落机率(max10)", True, (0, 0, 0))
+        button_2_text = font_zh.render("增加移动速度(max10)", True, (0, 0, 0))
+        button_3_text = font_zh.render("增加生命条数(max3)", True, (0, 0, 0))
+        button_4_text = font_zh.render("增加生命值上限(max10)", True, (0, 0, 0))
 
-        button_1_image = game_img.btn1_img
-        button_1 = pg.Rect(50, 110, 200, 50)
-        screen.blit(button_1_image, button_1)
-        screen.blit(button_1_text, (button_1.x + 10, button_1.y + 20))
+        button_1 = pg.Rect(30, 100, 350, 120)
+        screen.blit(game_img.btn3_img, button_1)
+        screen.blit(button_1_text, (button_1.x + 72, button_1.y + 45))
 
-        button_2 = pg.Rect(50, 210, 200, 50)
-        screen.blit(button_1_image, button_2)
-        screen.blit(button_2_text, (button_2.x + 10, button_2.y + 20))
+        button_2 = pg.Rect(30, 200, 350, 120)
+        screen.blit(game_img.btn3_img, button_2)
+        screen.blit(button_2_text, (button_2.x + 72, button_2.y + 45))
 
-        button_3 = pg.Rect(50, 310, 200, 50)
-        screen.blit(button_1_image, button_3)
-        screen.blit(button_3_text, (button_3.x + 10, button_3.y + 20))
+        button_3 = pg.Rect(30, 300, 350, 120)
+        screen.blit(game_img.btn3_img, button_3)
+        screen.blit(button_3_text, (button_3.x + 72, button_3.y + 45))
 
-        button_4 = pg.Rect(50, 410, 200, 50)
-        screen.blit(button_1_image, button_4)
-        screen.blit(button_4_text, (button_4.x + 10, button_4.y + 20))
+        button_4 = pg.Rect(30, 400, 350, 120)
+        screen.blit(game_img.btn3_img, button_4)
+        screen.blit(button_4_text, (button_4.x + 68, button_4.y + 45))
 
+        # 绘制玩家分数
+        if tk_login.is_logged_in:
+            cursor = connect_.cursor()
+            sql_take = "SELECT score FROM user_base_info WHERE user_name = %s"
+            cursor.execute(sql_take, (tk_login.user_name))
+            row = cursor.fetchone()
+            table_score = row[0]
+            draw_text(screen, "score:" + str(table_score), 26, 650, 140)
+        else:
+            draw_text(screen, "登录获取分数", 26, 650, 140)
+
+        # button点击事件
         if button_1.collidepoint((mx, my)):
-            if click:
-                n_1 += 1
-                global odds
-                odds += 0.01
+            if click and tk_login.is_logged_in:
+                if n_1 < 10:
+                    if table_score >= 1000:
+                        money = 1000
+                        n_1 += 1
+                        global odds
+                        odds += 0.01
+                        play_bill(money)
+                    else:
+                        tk.messagebox.showinfo('提示', '分数不足')
+                else:
+                    tk.messagebox.showinfo("提示", "已满级")
+            elif click:
+                tk.messagebox.showinfo('请登录', "登录以获取分数")
         if button_2.collidepoint((mx, my)):
-            if click:
-                n_2 += 1
-                player.speed += 0.1
+            if click and tk_login.is_logged_in:
+                if n_2 < 10:
+                    if table_score >= 1000:
+                        money = 1000
+                        n_2 += 1
+                        player.speed += 0.1
+                        playerCh2.speed += 0.1
+                        play_bill(money)
+                    else:
+                        tk.messagebox.showinfo('提示', '分数不足')
+                else:
+                    tk.messagebox.showinfo("提示", "已满级")
+            elif click:
+                tk.messagebox.showinfo('请登录', "登录以获取分数")
         if button_3.collidepoint((mx, my)):
-            if click:
-                n_3 += 1
-                player.lives += 1
+            if click and tk_login.is_logged_in:
+                if n_3 < 3:
+                    if table_score >= 1000:
+                        money = 1000
+                        n_3 += 1
+                        player.lives += 1
+                        up_live += 1
+                        play_bill(money)
+                    else:
+                        tk.messagebox.showinfo('提示', '分数不足')
+                else:
+                    tk.messagebox.showinfo("提示", "已满级")
+            elif click:
+                tk.messagebox.showinfo('请登录', "登录以获取分数")
         if button_4.collidepoint((mx, my)):
-            if click:
-                n_4 += 1
-                player.health += 10
+            if click and tk_login.is_logged_in:
+                if n_4 < 10:
+                    if table_score >= 1000:
+                        money = 1000
+                        n_4 += 1
+                        player.health += 10
+                        up_health += 10
+                        play_bill(money)
+                    else:
+                        tk.messagebox.showinfo('提示', '分数不足')
+                else:
+                    tk.messagebox.showinfo("提示", "已满级")
+            elif click:
+                tk.messagebox.showinfo('请登录', "登录以获取分数")
+
         click = False
 
-        draw_num(screen, n_1, 400, 120)
-        draw_num(screen, n_2, 400, 220)
-        draw_num(screen, n_3, 400, 320)
-        draw_num(screen, n_4, 400, 420)
+        # 画出技能等级
+        draw_num(screen, n_1, 400, 130)
+        draw_num(screen, n_2, 400, 230)
+        draw_num(screen, n_3, 400, 330)
+        draw_num(screen, n_4, 400, 430)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -742,11 +910,39 @@ def login():
     main.set_init_window()
 
 
+# 玩家主页（个人页面）
 def profile():
     main = User_Gui()
     main.set_init_window()
 
 
+# 关于我
+def aboutME():
+    while True:
+        screen.blit(game_img.aboutMe_bg, (0, -200))  # 显示图片的方法
+        draw_text(screen, '关于制作者', 64, config.WIDTH / 2, config.HEIGHT / 4 - 100)
+        draw_text(screen, '你好呀！勇敢的冒险者，我是这款游戏的开发者。', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 100)
+        draw_text(screen, '\n我来自重庆大学，是数据科学与大数据22级的学生', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 150)
+        draw_text(screen, '\n如何联系我', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 200)
+        draw_text(screen, '\nQQ：1363180320', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 250)
+        draw_text(screen, '\nEmail:99gelanjingling@gmail.com', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 300)
+        draw_text(screen, '\nGITHUB:https://github.com/codeofwhite', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 350)
+        draw_text(screen, '\n在此祝您游玩愉快！', 26, config.WIDTH / 2,
+                  config.HEIGHT / 4 + 400)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                return draw_init()
+        pg.display.update()
+        clock.tick(config.FPS)
+
+
+# 玩家主页类
 class User_Gui():
     def __init__(self):
         self.main_screen = tk.Tk()
@@ -759,7 +955,7 @@ class User_Gui():
         canvas = tk.Canvas(self.main_screen, width=1000, height=1000)
         # 图片
         image_ = Image.open(
-            'C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/imgs/login_bg.gif')
+            'tk_ui/tk_img/login_bg.gif')
         image_bg = ImageTk.PhotoImage(image_)
         image = canvas.create_image(100, 0, anchor='n', image=image_bg)
         canvas.pack()
@@ -772,18 +968,21 @@ class User_Gui():
                                       y=50)
         # 用户获得的总分
         cur = connect_.cursor()
-        sql = "SELECT score,highest_record FROM user_base_info WHERE user_name = %s"
+        sql = "SELECT score,highest_record,nums_of_plays,nums_of_wins FROM user_base_info WHERE user_name = %s"
         cur.execute(sql, (tk_login.user_name))
         row = cur.fetchone()
         score = row[0]
         ht_score = row[1]
-        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的最高得分为：" + str(ht_score),
+        play_game_times = row[2]
+        play_game_wins = row[3]
+        tk.Label(self.main_screen, text="您的总分数为：" + str(score) + "\n您的自由模式最高得分为：" + str(
+            ht_score) + '\n您的自由模式游玩场数为：' + str(play_game_times) + '\n冒险模式总胜场:' + str(play_game_wins),
                  font=('宋体', 20), fg="blue",
                  bg='Light Sea Green', relief=SUNKEN).place(x=200, y=80)
 
         # 设置头像，统一头像，或用户存入的头像
         user_img = Image.open(
-            'C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/imgs/user_img_100x100.jpg')
+            'imgs/user_img_100x100.jpg')
         user_tk_img = ImageTk.PhotoImage(user_img)
         canvas_ = tk.Canvas(self.main_screen, width=90, height=90)  # 设置头像画布的宽度和高度为100
         canvas_.create_image(0, 0, anchor='nw', image=user_tk_img)  # 在 Canvas 中放入圖片
@@ -806,34 +1005,87 @@ class User_Gui():
         tk_login.is_logged_in = False
 
 
-# chapter2
+# chapter 2
+'''
+cccccccc  tttttttttt  22222222   
+cc            tt            22
+cc            tt      22222222
+cc            tt      22
+cccccccc      tt      22222222
+'''
+# 初始化游戏窗口
+game_window = pg.display.set_mode(SIZE)
+pg.display.set_caption("chapter2")
+# 游戏图片导入
 player_image = pg.image.load(
-    "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/chapter_2_img/game_sprite/player.png")
+    "chapter_2_things/game_sprite/player.png")
 boss_image = pg.image.load(
-    "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/imgs/boss.png")
+    "chapter_2_things/game_sprite/boss_2.png")
 boss_image = pg.transform.scale(boss_image, (230, 230))
+laser_image = pg.image.load(
+    "chapter_2_things/game_sprite/laser.png")
+laser_image_2 = pg.image.load('chapter_2_things/game_sprite/boss_laser_2-removebg-preview.png')
+laser_image_3 = pg.image.load("chapter_2_things/game_sprite/boss_laser_3-removebg-preview.png")
+enemy_image = pg.image.load(
+    "chapter_2_things/game_sprite/enemy.png")
+
+player_bullet = pg.image.load(
+    "chapter_2_things/game_sprite/player_bullet.png")
+player_bullet.set_colorkey(config.BLACK)
+
+player_bullet_image = player_bullet
+
+# 玩家坟墓
+player_died = pg.image.load(
+    "imgs/player_died-removebg-preview.png")
+# 不加这个坟就迁远咯
+player_died.set_colorkey(config.BLACK)
+
+player_hero = pg.image.load("chapter_2_things/game_sprite/player_king_mode.png")
+player_hero.set_colorkey(config.BLACK)
+
+player_hero_eff = pg.image.load("chapter_2_things/game_sprite/player_king_mode_eff.png")
+player_hero_eff.set_colorkey(config.BLACK)
+
+enemy_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_img_2.png')
+enemy_image_2.set_colorkey(config.BLACK)
+
+enemy_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_3.png')
+enemy_image_3.set_colorkey(config.BLACK)
+
+# 敌人子弹
 enemy_bullet_image = pg.image.load(
-    "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/chapter_2_img/game_sprite/enemy_bullet.png")
+    "chapter_2_things/game_sprite/enemy_bullet.png")
 enemy_bullet_image = pg.transform.scale(enemy_bullet_image, (40, 40))
+enemy_bullet_image_2 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_2.png')
+enemy_bullet_image_2.set_colorkey(config.BLACK)
+enemy_bullet_image_3 = pg.image.load('chapter_2_things/game_sprite/enemy_bullet_3.png')
+enemy_bullet_image_3.set_colorkey(config.BLACK)
 
-# 敌人子弹的设计
-bullet_width = 20
-bullet_height = 35
-bullet_speed = 10
+# 精灵女王图片
+player_queen_img = pg.image.load('chapter_2_things/game_sprite/player_queen.png')
+player_queen_img.set_colorkey(config.BLACK)
 
-# Create lists for bullets and enemies
-enemies = []
-enemy_bullets = []
-boss_lasers = []
+# 精灵女王变小
+player_hero_min = pg.image.load('chapter_2_things/game_sprite/player_queen_min.png')
+player_hero_min.set_colorkey(config.BLACK)
 
-# boss的元素，不定义类，不好重复开游戏刷新
-boss_health = 1000
-boss_attack_delay = 60
-boss_bullet_speed = 10
-boss_laser_delay = 240
-laser_speed = 3
+# 精灵女王子弹
+queen_bullet = pg.image.load('chapter_2_things/game_sprite/queen_bullet_img-removebg-preview.png')
+queen_bullet.set_colorkey(config.BLACK)
 
-# Define enemy properties
+# 精灵女王射击的声音
+queen_shot_sound = pg.mixer.Sound('sounds/leap_bullet_sound.mp3')
+
+# boss出场的声音
+boss_sound1 = pg.mixer.Sound('sounds/boss_go_sound1.mp3')
+boss_sound2 = pg.mixer.Sound('sounds/boss_go_sound_2.mp3')
+boss_sound3 = pg.mixer.Sound('sounds/boss_go_sound_3.mp3')
+
+# 回血的声音
+super_sya = pg.mixer.Sound('sounds/sya_sound.mp3')
+
+# 定义敌人属性
 enemy_width = 70
 enemy_height = 70
 enemy_speed = 3
@@ -841,15 +1093,44 @@ enemy_spawn_delay = 60
 enemy_bullet_speed = 5
 enemy_fire_delay = 60
 
-# boss 精灵
-boss_sprite = pg.Rect(200, 100, 300, 120)
+# 定义游戏参数
+ch2_score = 0
+game_over = False
+enemies_spawned = 0
+enemies_to_spawn = 10
+level = 1
+
+# 定义boss参数
+boss_health = 450
+boss_attack_delay = 60
+boss_bullet_speed = 10
+boss_laser_delay = 240
+laser_speed = 3
+
+# 定义子弹参数
+bullet_width = 20
+bullet_height = 35
+bullet_speed = 10
+spread_bullet = False
+
+# 定义一些list存东西
+player_bullets = []
+enemies = []
+enemy_bullets = []
+boss_lasers = []
+items = []
+
+# chapter2总精灵
+ch2_all_sprites = pg.sprite.Group()
 
 
+# chapter2玩家类
 class PlayerCh2(pg.sprite.Sprite):
     def __init__(self):
         pg.sprite.Sprite.__init__(self)
         self.image = player_image
         self.rect = self.image.get_rect()
+        # 用来设置回到原点
         self.rect.centerx = config.WIDTH / 2
         self.rect.bottom = config.HEIGHT - 10
         self.speed = 5
@@ -858,12 +1139,8 @@ class PlayerCh2(pg.sprite.Sprite):
         self.invisible = False
         self.player_invisible_delay_time = 120
         self.player_flash_delay = 20
-        self.radius = 20
-        self.player_width = 70
-        self.player_height = 70
-        self.player_x = self.rect.centerx
-        self.player_y = self.rect.centery
-        self.player_sprite = pg.Rect(self.player_x, self.player_y, self.player_width, self.player_height)
+        self.player_shoot_delay = 5
+        self.last_shot_time = 0
 
     def update(self):
         if self.rect.right > WINDOWWIDTH:
@@ -875,10 +1152,171 @@ class PlayerCh2(pg.sprite.Sprite):
         if self.rect.top < 0:
             self.rect.top = 0
 
+    def shoot(self):
+        current_time = pg.time.get_ticks()
+        # 设置射击间隔
+        if current_time - self.last_shot_time >= 300:
+            if playerCh2.image == player_image:
+                pg.mixer.Sound.play(game_sound.shoot_sound)
+            elif playerCh2.image == player_queen_img:
+                pg.mixer.Sound.play(queen_shot_sound)
+            create_player_bullet()
+            self.last_shot_time = current_time
 
+
+# chapter2的player对象
 playerCh2 = PlayerCh2()
 
+# boss 精灵——Rect类型
+boss_sprite = pg.Rect(200, 100, 300, 120)
 
+
+# 玩家子弹的生成
+def create_player_bullet():
+    bullet_x = playerCh2.rect.centerx - bullet_width / 2
+    bullet_y = playerCh2.rect.top - bullet_height
+    bullet_sprite = pg.Rect(bullet_x, bullet_y, bullet_width, bullet_height)
+    player_bullets.append((bullet_sprite, "front"))
+    global spread_bullet
+    if spread_bullet == True:
+        bullet_sprite_left = pg.Rect(bullet_x - 10, bullet_y, bullet_width, bullet_height)
+        bullet_sprite_right = pg.Rect(bullet_x + 10, bullet_y, bullet_width, bullet_height)
+        player_bullets.append((bullet_sprite_left, "left"))
+        player_bullets.append((bullet_sprite_right, "right"))
+
+
+# 更新玩家子弹
+def update_player_bullets():
+    # create_player_bullet()
+    # Move and remove player bullets that have gone offscreen
+    for bullet in player_bullets:
+        if bullet[1] == "front":
+            bullet[0].move_ip(0, -bullet_speed)
+            if bullet[0].bottom < 0:
+                player_bullets.remove(bullet)
+        elif bullet[1] == "left":
+            bullet[0].move_ip(bullet_speed / 4, -bullet_speed)
+            if bullet[0].bottom < 0:
+                player_bullets.remove(bullet)
+        elif bullet[1] == "right":
+            bullet[0].move_ip(-bullet_speed / 4, -bullet_speed)
+            if bullet[0].bottom < 0:
+                player_bullets.remove(bullet)
+
+
+# 创造小敌人
+def create_enemy():
+    # Create a new enemy sprite
+    enemy_x = random.randint(0, WINDOWWIDTH - enemy_width)
+    enemy_y = 0 - enemy_height
+    enemy_sprite = pg.Rect(enemy_x, enemy_y, enemy_width, enemy_height)
+    enemies.append(enemy_sprite)
+    # print("Enemy spawned, total enemies: ", len(enemies))
+
+
+# 创造敌人子弹
+def create_enemy_bullet(enemy):
+    # Create a new enemy bullet sprite
+    bullet_x = enemy.centerx - bullet_width / 2
+    bullet_y = enemy.bottom
+    bullet_sprite = pg.Rect(bullet_x, bullet_y, bullet_width, bullet_height)
+    enemy_bullets.append(bullet_sprite)
+
+
+# 更新小敌人；玩家被飞机撞
+def update_enemies():
+    # Move and remove enemies that have gone offscreen
+    global game_over
+    for enemy in enemies:
+        enemy.move_ip(0, enemy_speed)
+        if enemy.top > WINDOWHEIGHT:
+            enemies.remove(enemy)
+            # global player_lives
+            # player_lives -= 1
+            # if player_lives == 0:
+            #     global game_over
+            #     game_over = True
+            # else:
+            #     # Make the player briefly invisible if they have just lost a life
+            #     global player_invisible, player_invisible_delay
+            #     player_invisible = True
+            #     player_invisible_delay = 120
+            # player_sprite.bottom = -100
+
+        # Randomly fire bullets
+        global enemy_fire_delay
+        enemy_fire_delay -= 1
+        if enemy_fire_delay == 0 and not enemy.colliderect(playerCh2.rect):
+            create_enemy_bullet(enemy)
+            enemy_fire_delay = 60
+        if not playerCh2.invisible:
+            if playerCh2.rect.colliderect(enemy):
+                pg.mixer.Sound.play(random.choice(game_sound.expl_sounds))
+                expl = Exploration(enemy.center, 'small')
+                ch2_all_sprites.add(expl)
+                enemies.remove(enemy)
+                playerCh2.health -= 25
+                if playerCh2.health <= 0:
+                    playerCh2.health = 100
+                    playerCh2.lives -= 1
+                if playerCh2.lives <= 0:
+                    # 不能放在主运行函数的game_over中，会有bug
+                    if tk_login.is_logged_in and not game_over:
+                        # print(ch2_score)
+                        cursor = connect_.cursor()
+                        cursor.execute('use user_info')
+                        sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                        cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                        connect_.commit()
+                    game_over = True
+
+
+# 玩家有被打，飞机普通子弹打玩家
+def check_collisions():
+    global ch2_score, game_over
+    # Check for collisions between player bullets and enemies
+    for bullet in player_bullets:
+        for enemy in enemies:
+            if bullet[0].colliderect(enemy):
+                pg.mixer.Sound.play(random.choice(game_sound.expl_sounds))
+                expl = Exploration(enemy.center, 'small')
+                ch2_all_sprites.add(expl)
+                player_bullets.remove(bullet)
+                enemies.remove(enemy)
+                ch2_score += 10
+                # if random.random() < 0.1:
+                #     item_x = enemy.centerx - item_width / 2
+                #     item_y = enemy.bottom
+                #     item_sprite = pygame.Rect(item_x, item_y, item_width, item_height)
+                #     items.append((item_sprite, "bullet_speed_up"))
+                # # Add chance for enemy to drop bomb item
+                # elif random.random() < 0.1:
+                #     item_x = enemy.centerx - item_width / 2
+                #     item_y = enemy.bottom
+                #     item_sprite = pygame.Rect(item_x, item_y, item_width, item_height)
+                #     items.append((item_sprite, "bomb"))
+
+            # Check for collisions between player and enemy bullets
+    if not playerCh2.invisible:
+        for bullet in enemy_bullets:
+            if bullet.colliderect(playerCh2.rect):
+                enemy_bullets.remove(bullet)
+                playerCh2.health -= 10
+                if playerCh2.health <= 0:
+                    playerCh2.health = 100
+                    playerCh2.lives -= 1
+                if playerCh2.lives <= 0:
+                    if tk_login.is_logged_in and not game_over:
+                        # print(ch2_score)
+                        cursor = connect_.cursor()
+                        cursor.execute('use user_info')
+                        sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                        cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                        connect_.commit()
+                    game_over = True
+
+
+# 更新敌人子弹
 def update_enemy_bullets():
     # Move and remove enemy bullets that have gone offscreen
     for bullet in enemy_bullets:
@@ -887,14 +1325,16 @@ def update_enemy_bullets():
             enemy_bullets.remove(bullet)
 
 
+# 创造boss
 def create_boss():
     global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed
     boss_sprite = pg.Rect(200, 100, 300, 120)
-    boss_health = 1000
+    boss_health = 450
     boss_attack_delay = 60
     boss_bullet_speed = 10
 
 
+# 创造boss子弹
 def create_boss_bullet():
     # Create a new boss bullet sprite
     bullet_x = boss_sprite.centerx - bullet_width / 2
@@ -903,24 +1343,57 @@ def create_boss_bullet():
     enemy_bullets.append(bullet_sprite)
 
 
+# 玩家被打，boss普通子弹打玩家
 def check_boss_collisions():
     # Check for collisions between player bullets and the boss
-    if not playerCh2.invisible:
-        for bullet in enemy_bullets:
+    global boss_health, ch2_score, game_over
+    for bullet in player_bullets:
+        if bullet[0].colliderect(boss_sprite):
+            player_bullets.remove(bullet)
+            # 普通状态适合打boss
+            if player_bullet_image == player_bullet:
+                boss_health -= 10
+                ch2_score += 10
+            # queen 不适合打boss
+            elif player_bullet_image == queen_bullet:
+                boss_health -= 4
+                ch2_score += 4
+    for bullet in enemy_bullets:
+        if not playerCh2.invisible:
             if bullet.colliderect(playerCh2.rect):
+                expl = Exploration(bullet.center, 'small')
+                ch2_all_sprites.add(expl)
                 enemy_bullets.remove(bullet)
                 playerCh2.health -= 10
-                if playerCh2.health == 0:
+                if playerCh2.health <= 0:
+                    playerCh2.health = 100
                     playerCh2.lives -= 1
-                else:
-                    # Make the player briefly invisible if they have just lost a life
-                    playerCh2.invisible = True
-                    playerCh2.player_flash_delay = playerCh2.player_invisible_delay_time
-                # player_sprite.bottom = -100
+                if playerCh2.lives <= 0:
+                    if tk_login.is_logged_in and not game_over:
+                        # print(ch2_score)
+                        cursor = connect_.cursor()
+                        cursor.execute('use user_info')
+                        sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                        cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                        connect_.commit()
+                    game_over = True
 
 
+# 创造boss的镭射
+def create_boss_laser():
+    # Create a new laser sprite
+    laser_width = 100
+    laser_height = 150
+    laser_x = boss_sprite.centerx - laser_width / 2
+    laser_y = boss_sprite.bottom
+    laser_sprite = pg.Rect(laser_x, laser_y, laser_width, laser_height)
+    pg.mixer.Sound.play(game_sound.boss_laser_sound)
+    boss_lasers.append(laser_sprite)
+
+
+# 更新boss；玩家有被打
 def update_boss():
-    global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed
+    global boss_sprite, boss_health, boss_attack_delay, boss_bullet_speed, game_over, ch2_score, level
     if boss_health > 0:
         # Move the boss around randomly
         boss_sprite.move_ip(random.randint(-12, 13), random.randint(-13, 12))
@@ -935,17 +1408,25 @@ def update_boss():
             boss_sprite.bottom = WINDOWHEIGHT
         # Fire bullets at the player
         boss_attack_delay -= 1
+
     if boss_attack_delay == 0:
         create_boss_bullet()
         boss_attack_delay = 30
 
-    # global boss_laser_delay, laser_speed
-    # boss_laser_delay -= 1
-    # if boss_laser_delay == 0:
-    #     create_boss_laser()
-    #     # print (boss_laser_delay)
-    #     boss_laser_delay = 240
-
+    global boss_laser_delay, laser_speed
+    boss_laser_delay -= 1
+    if boss_laser_delay == 0:
+        create_boss_laser()
+        # print (boss_laser_delay)
+        if level == 1:
+            boss_laser_delay = 240
+        elif level == 2:
+            boss_laser_delay = 220
+        elif level == 3:
+            boss_laser_delay = 200
+        elif level == 4:
+            boss_laser_delay = 160
+    # 玩家碰到BOSS
     if not playerCh2.invisible:
         if playerCh2.rect.colliderect(boss_sprite):
             # Move the boss away from the player
@@ -957,60 +1438,290 @@ def update_boss():
                 boss_sprite.move_ip(0, -10)
             else:
                 boss_sprite.move_ip(0, 10)
-            playerCh2.health -= 10
-            if playerCh2.health == 0:
+            playerCh2.health -= 5
+            if playerCh2.health <= 0:
+                playerCh2.health = 100
                 playerCh2.lives -= 1
-            else:
-                # Make the player briefly invisible if they have just lost a life
-                playerCh2.invisible = True
-                playerCh2.player_flash_delay = playerCh2.player_invisible_delay_time
-                # player_sprite.bottom = -100
+            if playerCh2.lives <= 0:
+                if tk_login.is_logged_in and not game_over:
+                    # print(ch2_score)
+                    cursor = connect_.cursor()
+                    cursor.execute('use user_info')
+                    sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                    cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                    connect_.commit()
+                game_over = True
+    # 玩家被镭射打
+    for laser in boss_lasers:
+        laser.move_ip(0, laser_speed)
+        if not playerCh2.invisible:
+            if laser.colliderect(playerCh2.rect):
+                boss_laser_delay = 240
+                playerCh2.health -= 10
+                if playerCh2.health <= 0:
+                    playerCh2.health = 100
+                    playerCh2.lives -= 1
+                if playerCh2.lives <= 0:
+                    # 不能这里写，会多跑21次,加判断
+                    if tk_login.is_logged_in and not game_over:
+                        # print(ch2_score)
+                        cursor = connect_.cursor()
+                        cursor.execute('use user_info')
+                        sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+                        cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+                        connect_.commit()
+                    game_over = True
+        if laser.bottom < 0:
+            boss_lasers.remove(laser)
 
-    # for laser in boss_lasers:
-    #     laser.move_ip(0, laser_speed)
-    #     if not player_invisible:
-    #         if laser.colliderect(player_sprite):
-    #             boss_laser_delay = 240
-    #             player_lives -= 1
-    #             if player_lives == 0:
-    #                 game_over = True
-    #             else:
-    #                 # Make the player briefly invisible if they have just lost a life
-    #                 player_invisible = True
-    #                 player_invisible_delay = player_invisible_delay_time
-    #     if laser.bottom < 0:
-    #         boss_lasers.remove(laser)
+
+flag = False
 
 
+# chapter的bgm
+def bgm2():
+    # 音乐
+    pg.mixer.music.load(
+        'chapter_2_things/background_music.mp3')
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
+
+
+def bgm3():
+    pg.mixer.music.load(
+        'chapter_2_things/bgm_3.mp3')
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
+
+
+def bgm4():
+    pg.mixer.music.load(
+        'chapter_2_things/bgm4.mp3')
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
+
+
+# 升级之后的事，这一函数的enemies_spawned看有没有用
+def create_level():
+    global level, enemy_speed, enemy_fire_delay, enemy_spawn_delay, enemies_spawned, enemies_to_spawn, enemy_bullet_speed
+    level += 1
+    enemy_speed += 2
+    enemy_fire_delay -= 10
+    enemy_spawn_delay = 50
+    # enemies_spawned = 0
+    enemies_to_spawn += 10
+    enemy_bullet_speed += 2
+
+
+def create_level_2():
+    global boss_image, level, boss_health, boss_bullet_speed, enemy_spawn_delay, enemies_to_spawn, enemy_image
+    # 播放音乐
+    bgm4()
+    boss_image = pg.image.load(
+        "chapter_2_things/game_sprite/boss_level_2-removebg-preview.png")
+    boss_image = pg.transform.scale(boss_image, (230, 230))
+    pg.mixer.Sound.play(boss_sound2)
+    boss_bullet_speed += 1
+    enemies_to_spawn += 10
+    boss_health += 500
+    enemy_image = enemy_image_2
+    level += 1
+
+
+def create_level_3():
+    global boss_image, level, boss_health, enemies_to_spawn, boss_bullet_speed, enemy_image
+    # 播放音乐
+    bgm3()
+    boss_image = pg.image.load(
+        "chapter_2_things/game_sprite/boss_3.png")
+    enemies_to_spawn += 5
+    boss_image = pg.transform.scale(boss_image, (230, 230))
+    boss_health += 1000
+    boss_bullet_speed += 1
+    pg.mixer.Sound.play(boss_sound3)
+    enemy_image = enemy_image_3
+    level += 1
+
+
+# 总更新游戏
+def update_game_ch2():
+    update_player_bullets()
+    ch2_all_sprites.update()
+    update_enemies()
+    update_enemy_bullets()
+    check_collisions()
+    check_boss_collisions()
+    back_group.update()
+    playerCh2.update()
+    update_boss()
+    # print(enemies_spawned)
+    if (level == 1) and (enemies_spawned > 10):
+        create_level()
+    if (level == 2) and (enemies_spawned > 15):
+        create_level_2()
+    if (level == 3) and (enemies_spawned > 28):
+        create_level_3()
+
+    global game_over, boss_image, ch2_score
+    if boss_health <= 0:
+        ch2_score += 10000
+        if tk_login.is_logged_in:
+            cursor = connect_.cursor()
+            cursor.execute('use user_info')
+            sql_in = "UPDATE user_base_info SET score = score + %s WHERE user_name = %s"
+            cursor.execute(sql_in, (ch2_score, tk_login.user_name))
+            sql_in_wins = "UPDATE user_base_info SET nums_of_wins = nums_of_wins + %s WHERE user_name = %s"
+            cursor.execute(sql_in_wins, (1, tk_login.user_name))
+            connect_.commit()
+        boss_image = pg.image.load(
+            "chapter_2_things/game_sprite/boss_died-removebg-preview.png")
+        boss_image = pg.transform.scale(boss_image, (250, 250))
+        boss_image.set_colorkey(config.BLACK)
+        game_window.blit(boss_image, boss_sprite)
+
+        draw_text(screen, '你成功了', 26, config.WIDTH / 2, 50)
+        draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
+        pg.mixer.Sound.play(game_sound.winwin_sound)
+        pg.display.update()
+        waiting = True  # 设置一个等待标志
+        while waiting:  # 进入一个等待循环
+            for event in pg.event.get():
+                if event.type == pg.KEYUP:  # 如果检测到用户按下任意键
+                    waiting = False  # 结束等待循环
+                    cv2.destroyAllWindows()
+                    return draw_init()  # 跳出game_main函数
+                if event.type == pg.QUIT:
+                    cv2.destroyAllWindows()
+                    return draw_init()
+
+
+# 绘制精灵在屏幕上
+def draw_game():
+    for bullet in player_bullets:
+        # pygame.draw.rect(game_window, red, bullet[0])
+        game_window.blit(player_bullet_image, bullet[0])
+    font = pg.font.Font(None, 36)
+    # boss_health_text = font.render("Boss Health: " + str(boss_health), True, config.WHITE)
+    # boss血条
+    if boss_health <= 1000:
+        draw_health(game_window, boss_health, 150, 40, '', 24, config.BLUE)
+    else:
+        draw_health(game_window, boss_health, 50, 40, '', 24, config.BLUE)
+    # game_window.blit(boss_health_text, (WINDOWWIDTH / 2 - 70, 50))
+    game_window.blit(boss_image, boss_sprite)
+    for enemy in enemies:
+        game_window.blit(enemy_image, enemy)
+
+
+# 背景参数
+background_image = pg.image.load(
+    "chapter_2_things/game_sprite/chapter2_bg.jpg")
+background_speed = 1.5
+
+
+# 清除所有精灵
+def clear_all():
+    enemies.clear()
+    boss_lasers.clear()
+    enemy_bullets.clear()
+    player_bullets.clear()
+
+
+# 定义升级后的效果增量
+up_health = 0
+up_live = 0
+
+
+# PVE模式主程序
 def chapter2():
-    flag = True
+    # 背景音乐
+    bgm2()
+    global enemies_spawned, enemies_to_spawn, level, enemy_spawn_delay, background_speed, game_over, boss_image, enemies, boss_health
+    # 等级初始化
+    level = 1
+    # enemy初始化
+    enemies_spawned = 0
+    enemy_spawn_delay = 60
+    # boss 初始化
+    boss_image = pg.image.load(
+        "chapter_2_things/game_sprite/boss_2.png")
+    boss_image = pg.transform.scale(boss_image, (250, 250))
+    # 刷新
+    clear_all()
+    flag_ = True
+    game_over = False
+    # 连接数据库
     connect_ = pymysql.connect(host="localhost", user="root", port=3307, password="Jason20040903", database="user_info",
                                charset="utf8")
-    bg1 = plane_sprite.BackGroud(False,
-                                 "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/imgs/chapter2_bg.jpg")
-    bg2 = plane_sprite.BackGroud(True,
-                                 "C:/Users/zhj20/pycharm_projects/PycharmProjects/alltest1/game_make_project/imgs/chapter2_bg.jpg")
-    back_group = pg.sprite.Group(bg1, bg2)
-    odds = 0
-    highest_score = 0
-    health = playerCh2.health
-    lives = playerCh2.lives
+    # 背景初始化
+    background_image = pg.image.load(
+        "chapter_2_things/game_sprite/chapter2_bg.jpg")
+    background_speed = 1
+    background_rect = background_image.get_rect()
+    background_surface = pg.Surface((800, 1200))
+    for x in range(0, 800, background_image.get_width()):
+        for y in range(0, 1200, background_image.get_height()):
+            background_surface.blit(background_image, (x, y))
+    background_position = [0, -WINDOWHEIGHT]
+    # 玩家初始化
+    playerCh2.lives = 3 + up_live
+    playerCh2.health = 100 + up_health
+    max_health = 100 + up_health
     playerCh2.rect.centerx = config.WIDTH / 2
     playerCh2.rect.bottom = config.HEIGHT - 10
-    score = 0
+    playerCh2.image = player_image
+    # 分数初始化
+    global ch2_score
+    ch2_score = 0
 
     with mp_hands.Hands(model_complexity=0, max_num_hands=1, min_detection_confidence=0.55, static_image_mode=False,
                         min_tracking_confidence=0.55) as hands:
         if not cap.isOpened():
-            print("Cannot open camera")
+            tk.messagebox.showerror("警告", "打开摄像头失败")
             exit()
 
-        run = True  # 設定是否更動觸碰區位置
         running = True
-        show_init = True
-        w, h = 600, 350  # 图像的尺寸
 
+        w, h = 600, 400  # 图像的尺寸
+        game_lose = False
         while cap.isOpened() and running:
+            if level == 3 and (enemies_spawned > 15):
+                background_image = pg.image.load(
+                    "chapter_2_things/game_sprite/chapter_bg2.jpg")
+                for x in range(0, 800, background_image.get_width()):
+                    for y in range(0, 1200, background_image.get_height()):
+                        background_surface.blit(background_image, (x, y))
+            if level == 4 and (enemies_spawned > 28):
+                background_image = pg.image.load(
+                    "chapter_2_things/game_sprite/chapter_bg_3.jpg")
+                for x in range(0, 800, background_image.get_width()):
+                    for y in range(0, 1200, background_image.get_height()):
+                        background_surface.blit(background_image, (x, y))
+
+            if game_over and not game_lose:
+                death = Death(playerCh2.rect.center)
+                ch2_all_sprites.add(death)
+                game_lose = True
+            if game_lose and not death.alive():
+                global player_died
+                player_died = pg.transform.scale(player_died, (150, 150))
+                game_window.blit(player_died, playerCh2)
+                draw_text(screen, '你失败了', 26, config.WIDTH / 2, 50)
+                draw_text(screen, '按任意键继续', 26, config.WIDTH / 2, 100)
+                pg.mixer.Sound.play(game_sound.die_music)
+                pg.display.update()
+                waiting = True  # 设置一个等待标志
+                while waiting:  # 进入一个等待循环
+                    for event in pg.event.get():
+                        if event.type == pg.KEYUP:  # 如果检测到用户按下任意键
+                            waiting = False  # 结束等待循环
+                            cv2.destroyAllWindows()
+                            return  # 跳出game_main函数
+                        if event.type == pg.QUIT:
+                            cv2.destroyAllWindows()
+                            return
+            health = playerCh2.health
+            lives = playerCh2.lives
             ret, img = cap.read()
             img = cv2.flip(img, 1)
             if not ret:
@@ -1063,72 +1774,151 @@ def chapter2():
                 wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
                 cx = int(wrist.x * w)
                 cy = int(wrist.y * h)
+                # right
                 if cx > w / 2:
                     playerCh2.rect.x += playerCh2.speed
+                # left
                 elif cx < w / 2:
                     playerCh2.rect.x -= playerCh2.speed
+                # bottom
                 if cy > h / 2:
                     playerCh2.rect.y += playerCh2.speed
+                # top
                 elif cy < h / 2:
                     playerCh2.rect.y -= playerCh2.speed
 
-                # # 射击
-                # if ggf.gesture(finger_angle) == 'rock' and label == 'Left':
-                #     player.shoot_left()
-                # if ggf.gesture(finger_angle) == 'rock' and label == 'Right':
-                #     player.shoot_right()
+                # 射击——hero模式不能射击
+                if ggf.gesture(finger_angle) == 'rock' and label == 'Left' and (
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
+                    playerCh2.shoot()
+                if ggf.gesture(finger_angle) == 'rock' and label == 'Right' and (
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
+                    playerCh2.shoot()
+                if ggf.gesture(finger_angle) == 'good' and label == 'Left' and (
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
+                    playerCh2.shoot()
+                if ggf.gesture(finger_angle) == 'good' and label == 'Right' and (
+                        playerCh2.image != player_hero and playerCh2.image != player_hero_eff and playerCh2.image != player_hero_min):
+                    playerCh2.shoot()
+
+                # queen 子弹
+                if playerCh2.image == player_queen_img:
+                    global player_bullet_image
+                    player_bullet_image = queen_bullet
+                elif playerCh2.image == player_image:
+                    player_bullet_image = player_bullet
+
+                # 变身成hero
+                if ggf.gesture(finger_angle) == 'one' and label == 'Left':
+                    playerCh2.image = player_hero
+                elif ggf.gesture(finger_angle) == 'paper' and label == 'Left':
+                    playerCh2.image = player_image
+                if ggf.gesture(finger_angle) == 'one' and label == 'Right':
+                    playerCh2.image = player_queen_img
+                elif ggf.gesture(finger_angle) == 'paper' and label == 'Right':
+                    playerCh2.image = player_image
+
+                # hero的技能，左手是回血，右手是变小
+                if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
+                        finger_angle) == 'scissor' and label == 'Left':
+                    if playerCh2.health <= max_health + 50:
+                        playerCh2.health += 0.5
+                        playerCh2.image = player_hero_eff
+                        pg.mixer.Sound.play(super_sya)
+                else:
+                    super_sya.stop()
+                if (playerCh2.image is player_hero or player_hero_eff) and ggf.gesture(
+                        finger_angle) == 'scissor' and label == 'Right':
+                    playerCh2.image = player_hero_min
 
             cv2.imshow('test', img)
             if cv2.waitKey(5) == ord('q'):
                 break  # 按下 q 鍵停止
 
-            clock.tick(config.FPS)
             # 特殊反应
             for event in pg.event.get():
                 # 回到主页
                 if event.type == pg.QUIT:
                     quit_game = tk.messagebox.askyesno("quit", "是否确认退出游戏，您在游戏中获得的积分将消失!")
                     if quit_game:
+                        pg.mixer.music.stop()
                         cv2.destroyAllWindows()
+                        bgm1()
                         running = False
                     else:
                         pass
-                # 无敌状态
-                # if event.type == INVINCIBLE_TIME:
-                #     player.invincible = False  # 取消无敌状态
-                #     player.image = game_img.player_img
-                pg.time.set_timer(INVINCIBLE_TIME, 0)  # 取消定时器
 
-            # 更新
-            all_sprites.update()
+            # 分散子弹的判定——根据玩家的血量，满血才可以散射
+            if playerCh2.health >= max_health:
+                global spread_bullet
+                spread_bullet = True
+            else:
+                spread_bullet = False
 
-            back_group.draw(screen)
-            # screen.blit(game_img.background_img, (0, 0))  # 显示背景图片的方法
-            screen.blit(player_image, playerCh2)
-            draw_text(screen, str(score), 18, config.WIDTH / 2, 10)
-            draw_health(screen, health, 10, 10, str(health), 18)
+            # 背景的滚动
+            background_position[1] += background_speed
+            if background_position[1] > 0:
+                background_position[1] -= 600
+
+            # 画出一些元素
+            game_window.blit(background_surface, background_position)
+            draw_text(game_window, "score:" + str(ch2_score), 24, config.WIDTH / 2 + 100, 10)
+            level_text = font.render("Level: " + str(level), True, config.RED, config.BLACK)
+            game_window.blit(level_text, (WINDOWWIDTH / 2 - 50, 10))
+            draw_health(game_window, health, 10, 10, str(health), 18, config.RED)
             for bullet in enemy_bullets:
                 # pygame.draw.rect(game_window, red, bullet)
-                screen.blit(enemy_bullet_image, bullet)
-            font_boss = pg.font.Font(None, 36)
-            boss_health_text = font_boss.render("Boss Health: " + str(boss_health), True, config.WHITE)
-            screen.blit(boss_health_text, (WINDOWWIDTH / 2 - 70, 50))
-            screen.blit(boss_image, boss_sprite)
+                if level == 1 or level == 2:
+                    game_window.blit(enemy_bullet_image, bullet)
+                elif level == 3:
+                    game_window.blit(enemy_bullet_image_2, bullet)
+                elif level == 4:
+                    game_window.blit(enemy_bullet_image_3, bullet)
+            # boss的镭射随着level的变化
+            for laser in boss_lasers:
+                if level == 1 or level == 2:
+                    game_window.blit(laser_image, laser)
+                elif level == 3:
+                    game_window.blit(laser_image_3, laser)
+                elif level == 4:
+                    game_window.blit(laser_image_2, laser)
+            # 画出生命数
             if lives <= 3:
-                draw_lives(screen, lives, game_img.player_lives_img, config.WIDTH - 100, 15)
+                draw_lives(game_window, lives, game_img.player_lives_img, config.WIDTH - 100, 15)
             else:
-                draw_lives(screen, lives, game_img.player_lives_img, config.WIDTH - 180, 15)
+                draw_lives(game_window, lives, game_img.player_lives_img, config.WIDTH - 180, 15)
+
+            # 生产敌人，和其生产速度的控制
+            enemy_spawn_delay -= 1
+            if (enemy_spawn_delay == 0):
+                create_enemy()
+                if level == 2:
+                    enemy_spawn_delay = 50
+                elif level == 3:
+                    enemy_spawn_delay = 40
+                elif level == 4:
+                    enemy_spawn_delay = 30
+                elif level == 1:
+                    enemy_spawn_delay = 60
+                enemies_spawned += 1
 
             # 更新画面
-            if flag:
-                create_boss()
-                flag = False
-            playerCh2.update()
-            update_enemy_bullets()
-            update_boss()
+            ch2_all_sprites.draw(game_window)
             check_boss_collisions()
-            back_group.update()
+            # 只创造一次boss
+            if flag_:
+                create_boss()
+                pg.mixer.Sound.play(boss_sound1)
+                flag_ = False
+            # 总绘制游戏
+            draw_game()
+            # 玩家死了，贴张墓碑
+            if not game_over:
+                game_window.blit(playerCh2.image, playerCh2)
+            # 全部更新
+            update_game_ch2()
             pg.display.update()
+            clock.tick(config.FPS)
 
 
 # 运行
