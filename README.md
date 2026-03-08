@@ -1,4 +1,11 @@
+
+https://github.com/user-attachments/assets/42b8d34c-75db-4723-9230-faaa1d04ae26
 # 手势飞机大战游戏 - gesture_recognition_game
+
+![_a1076f62-dc99-4225-916e-26826d868d04](https://github.com/user-attachments/assets/68a58790-4dcf-47f8-a058-1a23db6452e4)
+
+![_1621392f-32d0-4b24-9ebb-e10a142fae1a](https://github.com/user-attachments/assets/240df219-1772-4c51-b9b4-4d181d748948)
+
 
 欢迎来到手势飞机大战游戏！这是一个基于手势识别的游戏项目，用户可以通过手势控制飞机进行战斗。
 
@@ -8,6 +15,10 @@
 - 游戏模块：设计游戏逻辑，包括漫游模式和挑战模式。
 - 登录系统：记录用户数据，支持登录和注册功能。
 - 交易系统：支持飞船升级和技能提升。
+
+<img width="1210" height="948" alt="image" src="https://github.com/user-attachments/assets/b32a6449-4e0d-4883-bdb0-dfdde4642c65" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/66acbe12-eb7c-4ccf-a054-3464acc860a8" />
 
 ## 技术栈
 - **Python**：主要编程语言。
@@ -27,6 +38,9 @@
 - **挑战（PVE）功能**：
   - 用户挑战不同主题的 boss，击败后获得胜利。
   - 支持 hero 和 queen 形态切换。
+
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/d223b990-0859-48aa-a750-463cc43bd164" />
 
 ### 登录模块
 - **登录功能**：用户登录账号，保存游玩记录。
