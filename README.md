@@ -1,11 +1,4 @@
-
-https://github.com/user-attachments/assets/42b8d34c-75db-4723-9230-faaa1d04ae26
 # 手势飞机大战游戏 - gesture_recognition_game
-
-![_a1076f62-dc99-4225-916e-26826d868d04](https://github.com/user-attachments/assets/68a58790-4dcf-47f8-a058-1a23db6452e4)
-
-![_1621392f-32d0-4b24-9ebb-e10a142fae1a](https://github.com/user-attachments/assets/240df219-1772-4c51-b9b4-4d181d748948)
-
 
 欢迎来到手势飞机大战游戏！这是一个基于手势识别的游戏项目，用户可以通过手势控制飞机进行战斗。
 
